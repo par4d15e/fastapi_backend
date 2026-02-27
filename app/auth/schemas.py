@@ -1,87 +1,78 @@
 from datetime import datetime
-from typing import Optional
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict
+from sqlmodel import Field, SQLModel
 
-# ========== Refresh Token Schemas ==========
-
-
-class RefreshTokenBase(BaseModel):
-    """refreshtokenbase Schema"""
-
-    device_name: Optional[str] = Field(None, max_length=200)
-    device_type: Optional[str] = Field(None, max_length=50)
+# ========== 刷新令牌 相关 Schema ==========
 
 
-class RefreshTokenCreate(RefreshTokenBase):
-    """refreshtokenCreate Schema"""
+class RefreshTokenCreate(SQLModel):
+    """刷新令牌创建 Schema"""
 
-    user_id: int
-    token: str
-    expires_at: datetime
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    device_name: Annotated[str | None, Field(None, max_length=200)]
+    device_type: Annotated[str | None, Field(None, max_length=50)]
+    user_id: Annotated[int, Field(...)]
+    token: Annotated[str, Field(...)]
+    expires_at: Annotated[datetime, Field(...)]
+    ip_address: Annotated[str | None, Field(None)]
+    user_agent: Annotated[str | None, Field(None, max_length=500)]
 
 
-class RefreshTokenResponse(RefreshTokenBase):
-    """refreshtokenresponse Schema"""
+class RefreshTokenResponse(SQLModel):
+    """刷新令牌响应 Schema"""
 
+    device_name: Annotated[str | None, Field(None, max_length=200)]
+    device_type: Annotated[str | None, Field(None, max_length=50)]
     id: int
     user_id: int
     expires_at: datetime
     is_revoked: bool
     created_at: datetime
-    last_used_at: Optional[datetime] = None
-    ip_address: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True)
+    last_used_at: datetime | None = None
+    ip_address: str | None = None
 
 
-class RefreshTokenRequest(BaseModel):
-    """refreshtokenrequest Schema"""
+class RefreshTokenRequest(SQLModel):
+    """刷新令牌请求 Schema"""
 
-    refresh_token: str = Field(
-        ..., description="Generate token schemas (app/schemas/token.py)"
-    )
+    refresh_token: Annotated[
+        str, Field(..., description="Generate token schemas (app/schemas/token.py)")
+    ]
 
     model_config = ConfigDict(
         json_schema_extra={
-            "example": {"refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
+            "examples": [{"refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}]
         }
-    )
+    )  # type: ignore[assignment]
 
 
-class RefreshTokenRevoke(BaseModel):
-    """Revoke refresh token Schema"""
+class RefreshTokenRevoke(SQLModel):
+    """撤销刷新令牌 Schema"""
 
-    token: Optional[str] = Field(
-        None, description="Generate token schemas (app/schemas/token.py)"
-    )
-
-
-# ========== Verification Code Schemas ==========
+    token: Annotated[
+        str | None,
+        Field(None, description="生成令牌相关 schema"),
+    ]
 
 
-class VerificationCodeBase(BaseModel):
-    """Verification code base Schema"""
-
-    code_type: str = Field(
-        ..., description="Generate token schemas (app/schemas/token.py)"
-    )
+# ========== 验证码 相关 Schema ==========
 
 
-class VerificationCodeCreate(VerificationCodeBase):
-    """Verification code create Schema"""
+class VerificationCodeCreate(SQLModel):
+    """验证码创建 Schema"""
 
-    user_id: int
-    code: str
-    expires_at: datetime
-    max_attempts: int = 5
+    code_type: Annotated[str, Field(..., description="生成令牌相关 schema")]
+    user_id: Annotated[int, Field(...)]
+    code: Annotated[str, Field(...)]
+    expires_at: Annotated[datetime, Field(...)]
+    max_attempts: Annotated[int, Field(5)]
 
 
-class VerificationCodeResponse(VerificationCodeBase):
-    """Verification code response Schema"""
+class VerificationCodeResponse(SQLModel):
+    """验证码响应 Schema"""
 
+    code_type: Annotated[str, Field(..., description="生成令牌相关 schema")]
     id: int
     user_id: int
     expires_at: datetime
@@ -90,19 +81,15 @@ class VerificationCodeResponse(VerificationCodeBase):
     max_attempts: int
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
 
+class VerificationCodeVerify(SQLModel):
+    """验证码验证 Schema"""
 
-class VerificationCodeVerify(BaseModel):
-    """Verification code verify Schema"""
-
-    code: str = Field(..., min_length=4, max_length=10)
-    code_type: str = Field(
-        ..., description="Generate token schemas (app/schemas/token.py)"
-    )
+    code: Annotated[str, Field(..., min_length=4, max_length=10)]
+    code_type: Annotated[str, Field(..., description="生成令牌相关 schema")]
 
     model_config = ConfigDict(
         json_schema_extra={
-            "example": {"code": "123456", "code_type": "email_verification"}
+            "example": [{"code": "123456", "code_type": "email_verification"}]
         }
-    )
+    )  # type: ignore[assignment]

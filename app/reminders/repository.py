@@ -1,8 +1,8 @@
 from typing import Any, Mapping
 
-from sqlalchemy import asc, desc, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import asc, col, desc, or_, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.reminders.model import Reminder
 
@@ -22,8 +22,8 @@ class ReminderRepository:
 
     async def get_by_title(self, title: str) -> Reminder | None:
         statement = select(Reminder).where(Reminder.title == title)
-        result = await self.session.execute(statement)
-        reminder = result.scalar_one_or_none()
+        result = await self.session.exec(statement)
+        reminder = result.one_or_none()
         return reminder
 
     async def get_all(
@@ -42,7 +42,10 @@ class ReminderRepository:
         if search:
             pattern = f"%{search}%"
             query = query.where(
-                or_(Reminder.title.ilike(pattern), Reminder.description.ilike(pattern))
+                or_(
+                    col(Reminder.title).ilike(pattern),
+                    col(Reminder.description).ilike(pattern),
+                )
             )
 
         # 2. 排序
@@ -59,8 +62,8 @@ class ReminderRepository:
         offset = max(offset, 0)
         paginated_query = query.offset(offset).limit(limit)
 
-        result = await self.session.execute(paginated_query)
-        reminders = list(result.scalars().all())
+        result = await self.session.exec(paginated_query)
+        reminders = list(result.all())
         return reminders
 
     async def create(self, data: Mapping[str, Any]) -> Reminder:

@@ -1,29 +1,30 @@
 from datetime import date
+from typing import TYPE_CHECKING, Annotated
 
-from sqlalchemy import Date, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlmodel import Field, Relationship, SQLModel
 
-from app.core.base_model import Base, DateTimeMixin
-from app.reminders.model import Reminder
+from app.core.base_model import DateTimeMixin
+
+if TYPE_CHECKING:
+    from app.reminders.model import Reminder
 
 
-class Profile(Base, DateTimeMixin):
-    __tablename__ = "profiles"
-    __table_args__ = {"comment": "档案表"}
+class Profile(SQLModel, table=True, mixins=[DateTimeMixin]):
+    __tablename__ = "profiles"  # type: ignore[assignment]
 
-    id: Mapped[int | None] = mapped_column(Integer, primary_key=True, comment="宠物ID")
-    name: Mapped[str] = mapped_column(
-        String(100), unique=True, nullable=False, comment="姓名"
-    )
-    gender: Mapped[str] = mapped_column(String(20), nullable=False, comment="性别")
-    variety: Mapped[str] = mapped_column(String(100), nullable=False, comment="品种")
-    birthday: Mapped[date | None] = mapped_column(Date, nullable=True, comment="生日")
-    meals_per_day: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=2, comment="每日餐数"
-    )
-    description: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="描述"
-    )
-    reminders: Mapped[list["Reminder"]] = relationship(
-        back_populates="profile", comment="提醒事项列表"
-    )
+    id: Annotated[
+        int | None, Field(default=None, primary_key=True, description="宠物ID")
+    ]
+    name: Annotated[str, Field(..., max_length=100, unique=True, description="姓名")]
+    gender: Annotated[str, Field(..., max_length=20, description="性别")]
+    variety: Annotated[str, Field(..., max_length=100, description="品种")]
+    birthday: Annotated[date | None, Field(default=None, description="生日")]
+    meals_per_day: Annotated[int, Field(default=2, description="每日餐数")]
+    description: Annotated[
+        str | None, Field(default=None, max_length=255, description="描述")
+    ]
+
+    reminders: Annotated[list["Reminder"], Relationship(back_populates="profile")]
+
+    def __repr__(self) -> str:  # pragma: no cover - simple representation
+        return f"<Profile(id={self.id}, name={self.name}, gender={self.gender}, variety={self.variety})>"

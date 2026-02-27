@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-import jwt
+from jose import JWTError, jwt
 from pwdlib import PasswordHash
 
 from app.core.config import settings
@@ -41,7 +41,6 @@ def create_access_token(subject: str, expires_delta: timedelta | None = None) ->
 
     说明：
     - 使用 UTC 时区（timezone-aware）计算过期时间，并将 `exp` 存为整型秒级时间戳（Unix epoch）。
-    - 解码/验证建议使用 `jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])` 并处理 `jwt.PyJWTError`。
     """
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -55,3 +54,22 @@ def create_access_token(subject: str, expires_delta: timedelta | None = None) ->
         to_encode, settings.jwt_secret, algorithm=settings.jwt_algorithm
     )
     return encoded_jwt
+
+
+def decode_access_token(token: str) -> dict | None:
+    """解码访问令牌（JWT）
+
+    :param token: JWT 字符串
+    :return: 解码后的 payload 字典，或在验证失败时返回 None
+
+    说明：
+    - 使用 `settings.jwt_secret` 和 `settings.jwt_algorithm` 进行解码验证。
+    - 捕获 `jwt.PyJWTError` 以处理无效/过期的令牌。
+    """
+    try:
+        payload = jwt.decode(
+            token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
+        )
+        return payload
+    except JWTError:
+        return None

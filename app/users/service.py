@@ -1,64 +1,107 @@
-from typing import List, Optional
-
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.core.exception import AlreadyExistsException, NotFoundException
-from app.users.model import User
-from app.users.repo import user_repository
-from app.users.schema import UserCreate, UserUpdate
+from app.users.repository import UserRepository
+from app.users.schema import UserCreate, UserResponse, UserUpdate
 
 
 class UserService:
     """User 服务层：封装业务逻辑并调用 repository"""
 
-    def __init__(self, session: AsyncSession) -> None:
-        self._session = session
+    def __init__(self, repository: UserRepository) -> None:
+        self.repository = repository
 
-    async def get_by_id(self, user_id: int) -> Optional[User]:
-        return await user_repository.get_by_id(self._session, user_id)
-
-    async def get_by_username(self, username: str) -> Optional[User]:
-        return await user_repository.get_by_username(self._session, username)
-
-    async def get_by_email(self, email: str) -> Optional[User]:
-        return await user_repository.get_by_email(self._session, email)
-
-    async def list_all(self, skip: int = 0, limit: int = 100) -> List[User]:
-        return await user_repository.get_all(self._session, skip, limit)
-
-    async def create(self, payload: UserCreate) -> User:
-        # 检查用户名或邮箱重复
-        if await user_repository.get_by_username(self._session, payload.username):
-            raise AlreadyExistsException("Username already exists")
-        if await user_repository.get_by_email(self._session, payload.email):
-            raise AlreadyExistsException("Email already exists")
-        return await user_repository.create(self._session, payload)
-
-    async def update(self, user_id: int, payload: UserUpdate) -> User:
-        result = await user_repository.update(self._session, user_id, payload)
-        if not result:
+    async def get_user_by_username(self, username: str) -> UserResponse:
+        user = await self.repository.get_by_username(username)
+        if not user:
             raise NotFoundException("User not found")
-        return result
 
-    async def delete(self, user_id: int) -> bool:
-        deleted = await user_repository.delete(self._session, user_id)
+        return UserResponse.model_validate(user)
+
+    async def get_user_by_id(self, user_id: int) -> UserResponse:
+        user = await self.repository.get_by_id(user_id)
+        if not user:
+            raise NotFoundException("User not found")
+
+        return UserResponse.model_validate(user)
+
+    async def get_user_by_email(self, email: str) -> UserResponse:
+        user = await self.repository.get_by_email(email)
+        if not user:
+            raise NotFoundException("User not found")
+
+        return UserResponse.model_validate(user)
+
+    async def list_users(
+        self,
+        *,
+        search: str | None = None,
+        order_by: str = "id",
+        direction: str = "asc",
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[UserResponse]:
+        """查询所有用户"""
+        users = await self.repository.get_all(
+            search=search,
+            order_by=order_by,
+            direction=direction,
+            limit=limit,
+            offset=offset,
+        )
+        return [UserResponse.model_validate(user) for user in users]
+
+    async def create_user(self, user_data: UserCreate) -> UserResponse:
+        data = user_data.model_dump()
+        try:
+            user = await self.repository.create(data)
+            return UserResponse.model_validate(user)
+        except IntegrityError as e:
+            raise AlreadyExistsException(
+                "User with this username or email already exists"
+            ) from e
+
+    async def update_user(
+        self,
+        user_id: int,
+        user_data: UserUpdate,
+    ) -> UserResponse:
+        try:
+            update_data = user_data.model_dump(exclude_unset=True, exclude_none=True)
+            updated = await self.repository.update(user_id, update_data)
+            if not updated:
+                raise NotFoundException("User not found")
+
+            return UserResponse.model_validate(updated)
+        except IntegrityError as e:
+            raise AlreadyExistsException(
+                "User with this username or email already exists"
+            ) from e
+
+    async def delete_user(self, user_id: int) -> bool:
+        deleted = await self.repository.delete(user_id)
         if not deleted:
             raise NotFoundException("User not found")
+
         return True
 
-    async def authenticate(self, username: str, password: str) -> Optional[User]:
-        return await user_repository.authenticate(self._session, username, password)
+    async def authenticate(self, username: str, password: str) -> UserResponse:
+        user = await self.repository.authenticate(username, password)
+        if not user:
+            raise NotFoundException("Invalid username or password")
 
-    async def verify_email(self, user_id: int) -> User:
-        result = await user_repository.verify_email(self._session, user_id)
+        return UserResponse.model_validate(user)
+
+    async def verify_email(self, user_id: int) -> UserResponse:
+        result = await self.repository.verify_email(user_id)
         if not result:
             raise NotFoundException("User not found")
-        return result
 
-    async def change_password(self, user_id: int, new_password: str) -> User:
-        result = await user_repository.change_password(
-            self._session, user_id, new_password
-        )
+        return UserResponse.model_validate(result)
+
+    async def change_password(self, user_id: int, new_password: str) -> UserResponse:
+        result = await self.repository.change_password(user_id, new_password)
         if not result:
             raise NotFoundException("User not found")
-        return result
+
+        return UserResponse.model_validate(result)

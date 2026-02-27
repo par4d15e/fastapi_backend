@@ -36,5 +36,5 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 # 专门用于注册全局异常的函数
 def register_exception_handlers(app: FastAPI) -> None:
-    """向 FastAPI app 实例注册全局异常处理器。"""
+    """向 FastAPI app 实例注册全局异常处理器"""
     app.add_exception_handler(Exception, global_exception_handler)

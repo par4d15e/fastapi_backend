@@ -13,13 +13,13 @@ async def test_lifespan_calls(monkeypatch):
     async def fake_dispose():
         called["dispose"] = True
 
-    monkeypatch.setattr("app.core.lifespan.create_db_and_tables", fake_create)
+    monkeypatch.setattr("app.core.database.db.create_tables", fake_create)
 
-    class FakeEngine:
+    class FakeDB:
         async def dispose(self):
             await fake_dispose()
 
-    monkeypatch.setattr("app.core.lifespan.engine", FakeEngine())
+    monkeypatch.setattr("app.core.lifespan.db", FakeDB())
 
     config.settings.debug = True
     async with lifespan.lifespan(None):

@@ -63,7 +63,6 @@
 				"github.copilot.chat.localeOverride": "zh-CN",
 				"settingsSync.ignoredSettings": [
 					// 解释器与虚拟环境相关（不同机器路径不同）
-					"python.defaultInterpreterPath",
 					"python-env.workspaceSearchPaths",
 					"python.envFile",
 					"python.terminal.activateEnvironment",
@@ -77,7 +76,6 @@
 				],
 				
 				// Python 解释器配置（虚拟环境）
-				"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
 				"python.analysis.autoImportCompletions": true,
 				"python.analysis.typeCheckingMode": "basic",
 				"python.useEnvironmentsExtension": true,

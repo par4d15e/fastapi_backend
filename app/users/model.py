@@ -1,49 +1,39 @@
-"""usermodeldefinition"""
-
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Column, DateTime
+from sqlmodel import Field, Relationship, SQLModel
 
-from app.core.base_model import Base, DateTimeMixin
+from app.core.base_model import DateTimeMixin
+
+if TYPE_CHECKING:
+    from app.auth.models import RefreshToken, VerificationCode
 
 
-class User(Base, DateTimeMixin):
-    """
-    用户模型 - 完整的 JWT 认证
-
-    包含完整的认证功能：
-    - 邮箱验证
-    - 密码重置
-    - 支持多设备登录（通过 RefreshToken 表）
-    """
-
-    __tablename__ = "users"
+class User(SQLModel, table=True, mixins=[DateTimeMixin]):
+    __tablename__ = "users"  # type: ignore[assignment]
 
     # 基础字段
-    id: Mapped[int | None] = mapped_column(Integer, primary_key=True, index=True)
-    username: Mapped[str] = mapped_column(
-        String(50), unique=True, index=True, nullable=False
-    )
-    email: Mapped[str] = mapped_column(
-        String(100), unique=True, index=True, nullable=False
-    )
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    id: int | None = Field(default=None, primary_key=True, index=True)
+    username: str = Field(..., max_length=50, unique=True, index=True)
+    email: str = Field(..., max_length=100, unique=True, index=True)
+    hashed_password: str = Field(..., max_length=255)
 
     # 状态
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    is_verified: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        comment="Email whether already validated",
+    is_active: bool = Field(default=True, nullable=False)
+    is_superuser: bool = Field(default=False, nullable=False)
+    is_verified: bool = Field(
+        default=False, nullable=False, description="Email whether already validated"
     )
 
-    # 最后登录时间
-    last_login_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    # 最后登录时间（保留 timezone）
+    last_login_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
+
+    # 关系
+    refresh_tokens: list["RefreshToken"] = Relationship(back_populates="user")
+    verification_codes: list["VerificationCode"] = Relationship(back_populates="user")
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
         return f"<User(id={self.id}, username={self.username}, email={self.email})>"

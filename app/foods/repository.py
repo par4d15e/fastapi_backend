@@ -1,8 +1,8 @@
 from typing import Any, Mapping
 
-from sqlalchemy import asc, desc, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import asc, col, desc, or_, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.foods.model import Food
 
@@ -22,8 +22,8 @@ class FoodRepository:
 
     async def get_by_name(self, food_name: str) -> Food | None:
         statement = select(Food).where(Food.name == food_name)
-        result = await self.session.execute(statement)
-        food = result.scalar_one_or_none()
+        result = await self.session.exec(statement)
+        food = result.one_or_none()
         if not food:
             return None
 
@@ -45,7 +45,10 @@ class FoodRepository:
         if search:
             pattern = f"%{search}%"
             query = query.where(
-                or_(Food.name.ilike(pattern), Food.description.ilike(pattern))
+                or_(
+                    col(Food.name).ilike(pattern),
+                    col(Food.description).ilike(pattern),
+                )
             )
 
         # 2. 排序
@@ -61,7 +64,7 @@ class FoodRepository:
         limit = min(limit, 500)
         offset = max(offset, 0)
         paginated_query = query.offset(offset).limit(limit)
-        foods = list(await self.session.scalars(paginated_query))
+        foods = list(await self.session.exec(paginated_query))
 
         return foods
 

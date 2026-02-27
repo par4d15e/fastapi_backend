@@ -1,18 +1,18 @@
-"""令牌与验证码模型定义 - SQLAlchemy 2.0 类型化映射"""
+"""令牌与验证码模型定义 - SQLModel 版"""
 
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import DateTime
+from sqlmodel import Field, Relationship, SQLModel
 
-from app.core.base_model import Base, DateTimeMixin
+from app.core.base_model import DateTimeMixin
 
 if TYPE_CHECKING:
-    from app.users.model import User  # for type checkers only
+    from app.users.model import User
 
 
-class RefreshToken(Base, DateTimeMixin):
+class RefreshToken(SQLModel, table=True, mixins=[DateTimeMixin]):
     """刷新令牌模型
 
     用于管理用户刷新令牌，支持：
@@ -21,46 +21,34 @@ class RefreshToken(Base, DateTimeMixin):
     - 令牌过期管理
     """
 
-    __tablename__ = "refresh_tokens"
+    __tablename__ = "refresh_tokens"  # type: ignore[assignment]
 
-    id: Mapped[int | None] = mapped_column(Integer, primary_key=True, index=True)
+    id: int | None = Field(default=None, primary_key=True, index=True)
 
-    # Associated user
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    # 用户id（外键关联用户表）
+    user_id: int = Field(foreign_key="users.id", nullable=False, index=True)
 
     # 令牌信息
-    token: Mapped[str] = mapped_column(
-        String(500), unique=True, index=True, nullable=False
-    )
-    expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, index=True
-    )
+    token: str = Field(max_length=500, unique=True, index=True, nullable=False)
+    expires_at: datetime = Field(index=True, nullable=False)
 
     # 设备信息（可选）
-    device_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    device_type: Mapped[str | None] = mapped_column(
-        String(50), nullable=True
+    device_name: str | None = Field(default=None, max_length=100, nullable=True)
+    device_type: str | None = Field(
+        default=None, max_length=50, nullable=True
     )  # web, mobile, desktop
-    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
-    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    ip_address: str | None = Field(default=None, max_length=45, nullable=True)
+    user_agent: str | None = Field(default=None, max_length=500, nullable=True)
 
     # 状态
-    is_revoked: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False, index=True
-    )
-    revoked_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    is_revoked: bool = Field(default=False, nullable=False, index=True)
+    revoked_at: datetime | None = Field(default=None, nullable=True)
 
     # 最近使用时间
-    last_used_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_used_at: datetime | None = Field(default=None, nullable=True)
 
-    # Relationships
-    user: Mapped["User"] = relationship("User", backref="refresh_tokens")
+    # 关联关系
+    user: "User" = Relationship(back_populates="refresh_tokens")
 
     def __repr__(self) -> str:
         return f"<RefreshToken(id={self.id}, user_id={self.user_id}, is_revoked={self.is_revoked})>"
@@ -77,7 +65,7 @@ class RefreshToken(Base, DateTimeMixin):
         self.revoked_at = datetime.now(timezone.utc)
 
 
-class VerificationCode(Base, DateTimeMixin):
+class VerificationCode(SQLModel, table=True, mixins=[DateTimeMixin]):
     """验证码模型
 
     用于管理邮件验证码和密码重置码，支持：
@@ -86,34 +74,26 @@ class VerificationCode(Base, DateTimeMixin):
     - 验证码类型区分
     """
 
-    __tablename__ = "verification_codes"
+    __tablename__ = "verification_codes"  # type: ignore[assignment]
 
-    id: Mapped[int | None] = mapped_column(Integer, primary_key=True, index=True)
+    id: int | None = Field(default=None, primary_key=True, index=True)
 
-    # Associated user
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
+    # 用户id（外键关联用户表）
+    user_id: int = Field(foreign_key="users.id", nullable=False, index=True)
 
     # 验证码信息
-    code: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
-    code_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
-    expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, index=True
-    )
+    code: str = Field(max_length=10, nullable=False, index=True)
+    code_type: str = Field(max_length=20, nullable=False, index=True)
+    expires_at: datetime = Field(DateTime(timezone=True), nullable=False, index=True)
 
     # 使用状态
-    is_used: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False, index=True
-    )
-    used_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    max_attempts: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    is_used: bool = Field(default=False, nullable=False, index=True)
+    used_at: datetime | None = Field(default=None, nullable=True)
+    attempts: int = Field(default=0, nullable=False)
+    max_attempts: int = Field(default=5, nullable=False)
 
-    # Relationships
-    user: Mapped["User"] = relationship("User", backref="verification_codes")
+    # 关联关系
+    user: "User" = Relationship(back_populates="verification_codes")
 
     def __repr__(self) -> str:
         return f"<VerificationCode(id={self.id}, user_id={self.user_id}, code_type={self.code_type})>"

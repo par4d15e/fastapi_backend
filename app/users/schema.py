@@ -1,24 +1,21 @@
-"""userrelated Pydantic Schemas - Complete JWT Auth"""
-
 from datetime import datetime
-from typing import Optional
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import ConfigDict, EmailStr, model_validator
+from sqlmodel import Field, SQLModel
 
-# ========== base Schema ==========
 
+class UserBase(SQLModel):
+    """基类"""
 
-class UserBase(BaseModel):
-    """userbase Schema"""
-
-    username: str = Field(..., min_length=3, max_length=50)
+    username: Annotated[str, Field(..., min_length=3, max_length=50)]
     email: EmailStr
 
 
 class UserCreate(UserBase):
-    """userCreate Schema"""
+    """用户创建"""
 
-    password: str = Field(..., min_length=6, max_length=100)
+    password: Annotated[str, Field(..., min_length=6, max_length=100)]
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -28,20 +25,20 @@ class UserCreate(UserBase):
                 "password": "strongpassword123",
             }
         }
-    )
+    )  # type: ignore[assignment]
 
 
-class UserUpdate(BaseModel):
-    """userupdate Schema"""
+class UserUpdate(UserBase):
+    """用户更新"""
 
-    username: Optional[str] = Field(None, min_length=3, max_length=50)
-    email: Optional[EmailStr] = None
-    password: Optional[str] = Field(None, min_length=6, max_length=100)
-    is_active: Optional[bool] = None
+    username: Annotated[str | None, Field(None, min_length=3, max_length=50)]
+    email: EmailStr | None = None
+    password: Annotated[str | None, Field(None, min_length=6, max_length=100)]
+    is_active: bool | None = None
 
 
 class UserResponse(UserBase):
-    """userresponse Schema"""
+    """用户响应"""
 
     id: int
     is_active: bool
@@ -49,24 +46,24 @@ class UserResponse(UserBase):
     is_superuser: bool
     created_at: datetime
     updated_at: datetime
-    last_login_at: Optional[datetime] = None
+    last_login_at: datetime | None = None
 
-    model_config = ConfigDict(from_attributes=True)
-
-
-# ========== authenticationrelated Schema ==========
+    model_config = ConfigDict(from_attributes=True)  # type: ignore[assignment]
 
 
-class UserLogin(BaseModel):
-    """User login Schema"""
+# 认证相关 Schema
+class UserLogin(SQLModel):
+    """用户登录"""
 
-    username: Optional[str] = Field(
-        None, description="Generate user schemas (app/schemas/user.py)"
-    )
-    email: Optional[EmailStr] = Field(
-        None, description="Generate user schemas (app/schemas/user.py)"
-    )
-    password: str = Field(..., min_length=6)
+    username: Annotated[
+        str | None,
+        Field(None, description="Generate user schemas (app/schemas/user.py)"),
+    ]
+    email: Annotated[
+        EmailStr | None,
+        Field(None, description="Generate user schemas (app/schemas/user.py)"),
+    ]
+    password: Annotated[str, Field(..., min_length=6)]
 
     @model_validator(mode="after")
     def check_username_or_email(self):
@@ -79,14 +76,14 @@ class UserLogin(BaseModel):
         json_schema_extra={
             "example": {"email": "user@example.com", "password": "strongpassword123"}
         }
-    )
+    )  # type: ignore[assignment]
 
 
-class Token(BaseModel):
-    """tokenresponse Schema"""
+class Token(SQLModel):
+    """令牌响应"""
 
     access_token: str
-    refresh_token: Optional[str] = None
+    refresh_token: str | None = None
     token_type: str = "bearer"
 
     model_config = ConfigDict(
@@ -97,63 +94,59 @@ class Token(BaseModel):
                 "token_type": "bearer",
             }
         }
-    )
+    )  # type: ignore[assignment]
 
 
-class TokenData(BaseModel):
-    """tokendata Schema"""
+class TokenData(SQLModel):
+    """令牌数据"""
 
-    username: Optional[str] = None
-    user_id: Optional[int] = None
-
-
-class RefreshTokenRequest(BaseModel):
-    """refreshtokenrequest Schema"""
-
-    refresh_token: str = Field(
-        ..., description="Generate user schemas (app/schemas/user.py)"
-    )
+    username: str | None = None
+    user_id: int | None = None
 
 
-# ========== EmailValidaterelated Schema ==========
+class RefreshTokenRequest(SQLModel):
+    """刷新令牌请求"""
+
+    refresh_token: Annotated[
+        str, Field(..., description="Generate user schemas (app/schemas/user.py)")
+    ]
 
 
-class EmailVerificationRequest(BaseModel):
-    """EmailValidaterequest Schema"""
+# Email相关 Schema
+class EmailVerificationRequest(SQLModel):
+    """Email验证请求"""
 
     email: EmailStr
-    code: str = Field(..., min_length=4, max_length=10)
+    code: Annotated[str, Field(..., min_length=4, max_length=10)]
 
     model_config = ConfigDict(
         json_schema_extra={"example": {"email": "john@example.com", "code": "123456"}}
-    )
+    )  # type: ignore[assignment]
 
 
-class ResendVerificationRequest(BaseModel):
-    """Resend verification code request Schema"""
+class ResendVerificationRequest(SQLModel):
+    """重新发送验证代码请求"""
 
     email: EmailStr
 
 
-# ========== Passwordresetrelated Schema ==========
-
-
-class PasswordResetRequest(BaseModel):
-    """Passwordresetrequest Schema"""
+# 密码相关 Schema
+class PasswordResetRequest(SQLModel):
+    """密码重置请求"""
 
     email: EmailStr
 
     model_config = ConfigDict(
         json_schema_extra={"example": {"email": "john@example.com"}}
-    )
+    )  # type: ignore[assignment]
 
 
-class PasswordResetConfirm(BaseModel):
-    """Passwordresetconfirm Schema"""
+class PasswordResetConfirm(SQLModel):
+    """密码重置确认"""
 
     email: EmailStr
-    code: str = Field(..., min_length=4, max_length=10)
-    new_password: str = Field(..., min_length=6, max_length=100)
+    code: Annotated[str, Field(..., min_length=4, max_length=10)]
+    new_password: Annotated[str, Field(..., min_length=6, max_length=100)]
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -163,14 +156,14 @@ class PasswordResetConfirm(BaseModel):
                 "new_password": "newstrongpassword123",
             }
         }
-    )
+    )  # type: ignore[assignment]
 
 
-class PasswordChange(BaseModel):
-    """Passwordmodify Schema"""
+class PasswordChange(SQLModel):
+    """密码修改"""
 
-    old_password: str = Field(..., min_length=6)
-    new_password: str = Field(..., min_length=6, max_length=100)
+    old_password: Annotated[str, Field(..., min_length=6)]
+    new_password: Annotated[str, Field(..., min_length=6, max_length=100)]
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -179,4 +172,4 @@ class PasswordChange(BaseModel):
                 "new_password": "newstrongpassword123",
             }
         }
-    )
+    )  # type: ignore[assignment]

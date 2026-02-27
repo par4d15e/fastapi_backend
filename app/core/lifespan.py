@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from loguru import logger
 
 from app.core.config import settings
-from app.core.database import create_db_and_tables, engine
+from app.core.database import db
 
 
 @asynccontextmanager
@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
     if settings.debug:
         logger.info("当前为调试模式, 自动创建数据库表 (生产环境请使用Alembic)")
         try:
-            await create_db_and_tables()
+            await db.create_tables()
             logger.success("数据库表创建成功 (调试模式)")
         except Exception as e:
             logger.error(f"调试模式下创建数据库表失败: {str(e)}")
@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     async def _shutdown_handler():
         """信号触发的关闭逻辑 (和finally逻辑一致)"""
         logger.info("收到终止信号, 开始清理数据库资源...")
-        await engine.dispose()
+        await db.dispose()
         logger.success("数据库引擎已销毁, 连接池资源释放完成")
 
     register_shutdown_signals()
@@ -51,5 +51,5 @@ async def lifespan(app: FastAPI):
     # 应用关闭阶段（无论是否异常，必执行）
     finally:
         logger.info("应用开始关闭, 清理数据库引擎资源...")
-        await engine.dispose()
+        await db.dispose()
         logger.success("数据库引擎已销毁, 连接池资源释放完成")
