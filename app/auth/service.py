@@ -20,11 +20,11 @@ class AuthService:
 
     # Refresh token related
     async def create_refresh_token(self, payload: RefreshTokenCreate) -> RefreshToken:
-        # jit 在服务层生成，调用方无需提供
-        jit = secrets.token_urlsafe(16)
+        # jti 在服务层生成，调用方无需提供
+        jti = secrets.token_urlsafe(16)
         return await self._refresh_repo.create(
             user_id=payload.user_id,
-            jit=jit,
+            jti=jti,
             token=payload.token,
             expired_at=payload.expires_at,
         )

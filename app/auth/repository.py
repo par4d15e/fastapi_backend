@@ -18,19 +18,19 @@ class RefreshTokenCRUD:
     async def create(
         self,
         user_id: int,
-        jit: str,
+        jti: str,
         token: str,
         expired_at: datetime,
         is_active: bool = True,
     ) -> RefreshToken:
         """创建新的刷新令牌记录
 
-        新模型只包含 jit、token、user_id、expires_at 和 is_active 字段。
-        jit 必须由调用方生成并保证唯一性。
+        新模型只包含 jti、token、user_id、expires_at 和 is_active 字段。
+        jti 必须由调用方生成并保证唯一性
         """
         db_token = RefreshToken(
             user_id=user_id,
-            jit=jit,
+            jti=jti,
             token=token,
             expired_at=expired_at,
             is_active=is_active,
@@ -43,7 +43,7 @@ class RefreshTokenCRUD:
         return db_token
 
     async def get_by_token(self, token: str) -> RefreshToken | None:
-        """根据令牌字符串获取刷新令牌（仅限活动状态）。"""
+        """根据令牌字符串获取刷新令牌（仅限活动状态）"""
         statement = select(RefreshToken).where(
             RefreshToken.token == token,
             RefreshToken.is_active.is_(True),  # type: ignore
@@ -54,10 +54,10 @@ class RefreshTokenCRUD:
     async def get_user_tokens(
         self, user_id: int, include_inactive: bool = False
     ) -> list[RefreshToken]:
-        """获取属于指定用户的所有刷新令牌。
+        """获取属于指定用户的所有刷新令牌
 
         默认只返回 `is_active=True` 的令牌，除非
-        `include_inactive=True`。
+        `include_inactive=True`
         """
         statement = select(RefreshToken).where(RefreshToken.user_id == user_id)
 
@@ -90,7 +90,7 @@ class RefreshTokenCRUD:
         return count
 
     async def cleanup_expired(self) -> int:
-        """将所有过期且仍然活跃的令牌标记为不活动。"""
+        """将所有过期且仍然活跃的令牌标记为不活动"""
         statement = select(RefreshToken).where(
             RefreshToken.expired_at < datetime.now(timezone.utc),
             RefreshToken.is_active.is_(True),  # type: ignore
