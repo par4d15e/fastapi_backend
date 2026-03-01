@@ -7,6 +7,7 @@ from app.core.lifespan import lifespan
 from app.foods import router as food_routers
 from app.profiles import router as profile_routers
 from app.reminders import router as reminder_routers
+from app.users import router as user_routers
 
 
 def create_app() -> FastAPI:
@@ -31,6 +32,7 @@ def create_app() -> FastAPI:
     app.include_router(food_routers.router, prefix="", tags=["food"])
     app.include_router(reminder_routers.router, prefix="", tags=["reminder"])
     app.include_router(auth_routers.router, prefix="", tags=["auth"])
+    app.include_router(user_routers.router, prefix="", tags=["users"])
 
     # 健康检查
     @app.get("/healthz", tags=["health"])
