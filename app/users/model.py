@@ -24,9 +24,6 @@ class User(SQLModel, table=True, mixins=[DateTimeMixin]):
     __tablename__ = "users"  # type: ignore[assignment]
 
     __table_args__ = (
-        # 核心查询索引
-        Index("idx_users_username", "username"),
-        Index("idx_users_email", "email"),
         # 复合业务索引
         Index(
             "idx_users_get_user_by_email",

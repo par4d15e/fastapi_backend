@@ -25,9 +25,11 @@ class Reminder(SQLModel, table=True, mixins=[DateTimeMixin]):
         Index("idx_reminders_due_date", "due_date"),
         Index("idx_reminders_is_done", "is_done"),
         # 复合业务索引
-        Index("idx_reminders_get_by_title", "profile_id", "is_done"),  # 查询宠物未完成提醒
         Index(
-            "idx_reminders_profile_due_date", "title", "is_done", "due_date"
+            "idx_reminders_get_by_title", "profile_id", "is_done"
+        ),  # 查询宠物未完成提醒
+        Index(
+            "idx_reminders_profile_due_date", "profile_id", "is_done", "due_date"
         ),  # 查询宠物即将到期提醒
         Index("idx_reminders_profile_type", "profile_id", "type"),  # 按宠物+类型筛选
         Index(

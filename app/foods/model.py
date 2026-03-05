@@ -8,9 +8,6 @@ from app.core.base_model import DateTimeMixin
 class Food(SQLModel, table=True, mixins=[DateTimeMixin]):
     __tablename__ = "foods"  # type: ignore[assignment]
     __table_args__ = (
-        # 单列索引
-        Index("idx_foods_name", "name"),
-        Index("idx_foods_brand", "brand"),
         # 复合索引 - 用于高效查询
         Index("idx_foods_brand_name", "brand", "name"),  # 按品牌查询食品列表
         Index("idx_foods_brand_price", "brand", "price"),  # 按品牌筛选价格区间
@@ -24,10 +21,8 @@ class Food(SQLModel, table=True, mixins=[DateTimeMixin]):
     id: Annotated[
         int | None, Field(default=None, primary_key=True, description="编号")
     ] = None
-    name: Annotated[
-        str, Field(..., max_length=100, index=True, unique=True, description="名称")
-    ]
-    brand: Annotated[str, Field(..., max_length=100, index=True, description="品牌")]
+    name: Annotated[str, Field(..., max_length=100, unique=True, description="名称")]
+    brand: Annotated[str, Field(..., max_length=100, description="品牌")]
     kcals_per_g: Annotated[
         float | None, Field(default=None, ge=0, description="卡路里/克")
     ] = None

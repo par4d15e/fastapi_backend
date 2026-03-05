@@ -13,11 +13,6 @@ class Profile(SQLModel, table=True, mixins=[DateTimeMixin]):
     __tablename__ = "profiles"  # type: ignore[assignment]
 
     __table_args__ = (
-        # 单列索引
-        Index("idx_profiles_name", "name"),
-        Index("idx_profiles_variety", "variety"),
-        Index("idx_profiles_gender", "gender"),
-        Index("idx_profiles_birthday", "birthday"),
         # 复合索引 - 用于高效查询
         Index("idx_profiles_variety_gender", "variety", "gender"),  # 按品种+性别筛选
         Index(

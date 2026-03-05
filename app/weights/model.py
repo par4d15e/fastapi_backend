@@ -8,7 +8,7 @@ from sqlmodel import Field, Index, Relationship, SQLModel
 
 class WeightRecord(SQLModel, table=True, mixins=[DateTimeMixin]):
     __tablename__ = "weight_records"  # type: ignore[assignment]
-    __tableargs__ = (
+    __table_args__ = (
         # 核心查询索引
         Index("idx_weight_records_profile_id", "profile_id"),
         Index("idx_weight_records_measured_at_desc", "measured_at"),
@@ -21,9 +21,7 @@ class WeightRecord(SQLModel, table=True, mixins=[DateTimeMixin]):
     )
 
     id: Annotated[int | None, Field(default=None, primary_key=True)] = None
-    profile_id: Annotated[
-        int, Field(foreign_key="profiles.id", nullable=False, index=True)
-    ]
+    profile_id: Annotated[int, Field(foreign_key="profiles.id", nullable=False)]
     weight_g: Annotated[int, Field(..., description="体重 (克)")]
     measured_at: Annotated[
         datetime, Field(default_factory=lambda: datetime.now(tz=timezone.utc))

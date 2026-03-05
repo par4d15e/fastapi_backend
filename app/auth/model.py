@@ -51,13 +51,12 @@ class RefreshToken(SQLModel, table=True, mixins=[DateTimeMixin]):
         ),  # auth/repository.py: generate_access_token
         # 排序索引
         Index("idx_refresh_tokens_created_at_desc", desc("created_at")),
-        Index("idx_refresh_tokens_expired_at_desc", desc("expired_at")),
     )
 
     id: Annotated[int | None, Field(default=None, primary_key=True)] = None
     user_id: Annotated[
         int,
-        Field(foreign_key="users.id", ondelete="CASCADE", nullable=False, index=True),
+        Field(foreign_key="users.id", ondelete="CASCADE", nullable=False),
     ]
     jti: Annotated[str, Field(nullable=False, max_length=64, unique=True)]
     token: Annotated[str, Field(nullable=False, max_length=1024)]
@@ -100,7 +99,7 @@ class Code(SQLModel, table=True, mixins=[DateTimeMixin]):
     id: Annotated[int | None, Field(default=None, primary_key=True)] = None
     user_id: Annotated[
         int,
-        Field(foreign_key="users.id", ondelete="CASCADE", nullable=False, index=True),
+        Field(foreign_key="users.id", ondelete="CASCADE", nullable=False),
     ]
     type: Annotated[CodeType, Field(nullable=False)]
     code: Annotated[str, Field(nullable=False, max_length=10, unique=True)]  # 优化长度
@@ -119,9 +118,6 @@ class Social_Account(SQLModel, table=True, mixins=[DateTimeMixin]):
     __tablename__ = "social_accounts"  # type: ignore[assignment]
 
     __table_args__ = (
-        # 单列索引
-        Index("idx_social_accounts_provider", "provider"),
-        Index("idx_social_accounts_provider_user_id", "provider_user_id"),
         # 复合索引
         Index(
             "idx_social_accounts_get_social_account",
