@@ -27,8 +27,8 @@ class RefreshTokenResponse(SQLModel):
     device_type: Annotated[str | None, Field(None, max_length=50)]
     id: int
     user_id: uuid.UUID
-    expires_at: datetime
-    is_revoked: bool
+    expired_at: datetime
+    is_active: bool
     created_at: datetime
     last_used_at: datetime | None = None
     ip_address: str | None = None

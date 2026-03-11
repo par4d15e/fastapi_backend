@@ -1,6 +1,6 @@
 import uuid
 from enum import IntEnum
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, List
 
 import sqlalchemy.dialects.postgresql as pg
 from sqlmodel import Column, Field, Index, Relationship, SQLModel, desc, text
@@ -19,7 +19,7 @@ class RoleType(IntEnum):
     admin = 2
 
 
-class User(SQLModel, table=True, mixins=[DateTimeMixin]):
+class User(DateTimeMixin, SQLModel, table=True):
     """用户表 - 存储系统用户的基本信息"""
 
     __tablename__ = "users"  # type: ignore[assignment]
@@ -47,56 +47,41 @@ class User(SQLModel, table=True, mixins=[DateTimeMixin]):
         Index("idx_users_updated_at_desc", desc("updated_at")),
     )
 
-    uid: Annotated[
-        uuid.UUID | None,
-        Field(
-            default=None,
-            sa_column=Column(
-                pg.UUID(as_uuid=True),
-                server_default=text("gen_random_uuid()"),
-                primary_key=True,
-            ),
+    uid: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            pg.UUID(as_uuid=True),
+            server_default=text("gen_random_uuid()"),
+            primary_key=True,
         ),
-    ] = None
-    username: Annotated[
-        str | None, Field(default=None, nullable=True, max_length=30, unique=True)
-    ] = None  # 优化长度
-    email: Annotated[
-        str | None, Field(default=None, nullable=False, max_length=100, unique=True)
-    ] = None  # 优化长度
-    password_hash: Annotated[str | None, Field(default=None, max_length=255)] = None
-    role: Annotated[RoleType, Field(default=RoleType.user, nullable=False)] = (
-        RoleType.user
     )
-    bio: Annotated[
-        str | None, Field(default="这个人很懒，什么都没有留下。", max_length=300)
-    ] = None  # 优化长度
-    ip_address: Annotated[str | None, Field(default=None, max_length=45)] = None
-    longitude: Annotated[float | None, Field(default=None)] = None
-    latitude: Annotated[float | None, Field(default=None)] = None
-    city: Annotated[str | None, Field(default=None, max_length=50)] = None  # 优化长度
-    is_active: Annotated[bool, Field(default=False, nullable=False)] = False
-    is_verified: Annotated[bool, Field(default=False, nullable=False)] = False
-    is_deleted: Annotated[bool, Field(default=False, nullable=False)] = False
+    username: str | None = Field(
+        default=None, max_length=30, unique=True, nullable=True
+    )
+    email: str = Field(
+        ..., max_length=100, unique=True, nullable=False
+    )  # email 必填，不可为空
+    password_hash: str | None = Field(default=None, max_length=255)
+    role: RoleType = Field(default=RoleType.user, nullable=False)
+    bio: str | None = Field(default="这个人很懒，什么都没有留下。", max_length=300)
+    ip_address: str | None = Field(default=None, max_length=45)
+    longitude: float | None = Field(default=None)
+    latitude: float | None = Field(default=None)
+    city: str | None = Field(default=None, max_length=50)
+    is_active: bool = Field(default=False, nullable=False)
+    is_verified: bool = Field(default=False, nullable=False)
+    is_deleted: bool = Field(default=False, nullable=False)
 
     # 关系字段定义
     # 1. 一对一关系：用户头像
 
     # 2. 一对多关系：用户创建的内容（可以级联删除）
-    refresh_tokens: Annotated[
-        list["RefreshToken"],
-        Relationship(passive_deletes=True),
-    ] = []
+    # 一对多关系：用户创建的内容（可以级联删除）
+    refresh_tokens: List["RefreshToken"] = Relationship(passive_deletes=True)
 
-    codes: Annotated[
-        list["Code"],
-        Relationship(passive_deletes=True),
-    ] = []
+    codes: List["Code"] = Relationship(passive_deletes=True)
 
-    social_accounts: Annotated[
-        list["Social_Account"],
-        Relationship(passive_deletes=True),
-    ] = []
+    social_accounts: List["Social_Account"] = Relationship(passive_deletes=True)
 
     # 3. 一对多关系：重要业务数据（不应级联删除，支持软删除）
 

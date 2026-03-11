@@ -1,11 +1,9 @@
-from typing import Annotated
-
 from sqlmodel import Field, Index, SQLModel, desc
 
 from app.core.base_model import DateTimeMixin
 
 
-class Food(SQLModel, table=True, mixins=[DateTimeMixin]):
+class Food(DateTimeMixin, SQLModel, table=True):
     __tablename__ = "foods"  # type: ignore[assignment]
     __table_args__ = (
         # 复合索引
@@ -16,26 +14,22 @@ class Food(SQLModel, table=True, mixins=[DateTimeMixin]):
         Index("idx_foods_updated_at_desc", desc("updated_at")),
     )
 
-    id: Annotated[
-        int | None, Field(default=None, primary_key=True, description="编号")
-    ] = None
-    name: Annotated[
-        str, Field(..., max_length=100, unique=True, index=True, description="名称")
-    ]
-    brand: Annotated[str, Field(..., max_length=100, description="品牌")]
-    metabolic_energy: Annotated[
-        float | None,
-        Field(default=None, ge=0, index=True, description="代谢能(卡路里/千克)"),
-    ] = None
-    price: Annotated[
-        float | None, Field(default=None, ge=0, index=True, description="价格")
-    ] = None
-    weight: Annotated[
-        float | None, Field(default=None, ge=0, index=True, description="重量(千克)")
-    ] = None
-    description: Annotated[
-        str | None, Field(default=None, max_length=255, description="描述")
-    ] = None
+    id: int | None = Field(default=None, primary_key=True, description="编号")
+
+    name: str = Field(..., max_length=100, unique=True, index=True, description="名称")
+
+    brand: str = Field(..., max_length=100, description="品牌")
+    metabolic_energy: float | None = Field(
+        default=None, ge=0, index=True, description="代谢能(卡路里/千克)"
+    )
+
+    price: float | None = Field(default=None, ge=0, index=True, description="价格")
+
+    weight: float | None = Field(
+        default=None, ge=0, index=True, description="重量(千克)"
+    )
+
+    description: str | None = Field(default=None, max_length=255, description="描述")
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
         return f"<Food(id={self.id}, name={self.name})>"

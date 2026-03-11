@@ -1,5 +1,5 @@
+import uuid
 from datetime import datetime
-from typing import Annotated
 
 from pydantic import ConfigDict, EmailStr, model_validator
 from sqlmodel import Field, SQLModel
@@ -10,14 +10,14 @@ from app.users.model import RoleType
 class UserBase(SQLModel):
     """基类"""
 
-    username: Annotated[str, Field(..., min_length=3, max_length=50)]
+    username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
 
 
 class UserCreate(UserBase):
     """用户创建"""
 
-    password: Annotated[str, Field(..., min_length=6, max_length=100)]
+    password: str = Field(..., min_length=6, max_length=100)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -32,16 +32,17 @@ class UserCreate(UserBase):
 
 class UserUpdate(UserBase):
     """用户更新"""
-    username: Annotated[str | None, Field(None, min_length=3, max_length=50)] = None
+
+    username: str | None = Field(None, min_length=3, max_length=50)
     email: EmailStr | None = None
-    password: Annotated[str | None, Field(None, min_length=6, max_length=100)] = None
+    password: str | None = Field(None, min_length=6, max_length=100)
     is_active: bool | None = None
 
 
 class UserResponse(UserBase):
     """用户响应"""
 
-    id: int
+    uid: uuid.UUID
     role: RoleType
     is_active: bool
     is_verified: bool
@@ -56,15 +57,9 @@ class UserResponse(UserBase):
 class UserLogin(SQLModel):
     """用户登录"""
 
-    username: Annotated[
-        str | None,
-        Field(None, description="Generate user schemas (app/schemas/user.py)"),
-    ] = None
-    email: Annotated[
-        EmailStr | None,
-        Field(None, description="Generate user schemas (app/schemas/user.py)"),
-    ] = None
-    password: Annotated[str, Field(..., min_length=6)]
+    username: str | None = Field(None, description="用户名")
+    email: EmailStr | None = Field(None, description="邮箱地址")
+    password: str = Field(..., min_length=6)
 
     @model_validator(mode="after")
     def check_username_or_email(self):
@@ -108,9 +103,9 @@ class TokenData(SQLModel):
 class RefreshTokenRequest(SQLModel):
     """刷新令牌请求"""
 
-    refresh_token: Annotated[
-        str, Field(..., description="Generate user schemas (app/schemas/user.py)")
-    ]
+    refresh_token: str = Field(
+        ..., description="Generate user schemas (app/schemas/user.py)"
+    )
 
 
 # Email相关 Schema
@@ -118,7 +113,7 @@ class EmailVerificationRequest(SQLModel):
     """Email验证请求"""
 
     email: EmailStr
-    code: Annotated[str, Field(..., min_length=4, max_length=10)]
+    code: str = Field(..., min_length=4, max_length=10)
 
     model_config = ConfigDict(
         json_schema_extra={"example": {"email": "john@example.com", "code": "123456"}}
@@ -146,8 +141,8 @@ class PasswordResetConfirm(SQLModel):
     """密码重置确认"""
 
     email: EmailStr
-    code: Annotated[str, Field(..., min_length=4, max_length=10)]
-    new_password: Annotated[str, Field(..., min_length=6, max_length=100)]
+    code: str = Field(..., min_length=4, max_length=10)
+    new_password: str = Field(..., min_length=6, max_length=100)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -163,8 +158,8 @@ class PasswordResetConfirm(SQLModel):
 class PasswordChange(SQLModel):
     """密码修改"""
 
-    old_password: Annotated[str, Field(..., min_length=6)]
-    new_password: Annotated[str, Field(..., min_length=6, max_length=100)]
+    old_password: str = Field(..., min_length=6)
+    new_password: str = Field(..., min_length=6, max_length=100)
 
     model_config = ConfigDict(
         json_schema_extra={

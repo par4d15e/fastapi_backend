@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 from enum import IntEnum
-from typing import Annotated
 
 import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy import ForeignKey
@@ -26,7 +25,7 @@ class SocialProvider(IntEnum):
     github = 2
 
 
-class RefreshToken(SQLModel, table=True, mixins=[DateTimeMixin]):
+class RefreshToken(DateTimeMixin, SQLModel, table=True):
     """用户刷新令牌表 - 仅存储 refresh token"""
 
     __tablename__ = "refresh_tokens"  # type: ignore[assignment]
@@ -55,29 +54,26 @@ class RefreshToken(SQLModel, table=True, mixins=[DateTimeMixin]):
         Index("idx_refresh_tokens_created_at_desc", desc("created_at")),
     )
 
-    id: Annotated[int | None, Field(default=None, primary_key=True)] = None
-    user_id: Annotated[
-        uuid.UUID,
-        Field(
-            sa_column=Column(
-                pg.UUID(as_uuid=True),
-                ForeignKey("users.uid", ondelete="CASCADE"),
-                nullable=False,
-            ),
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID(as_uuid=True),
+            ForeignKey("users.uid", ondelete="CASCADE"),
+            nullable=False,
         ),
-    ]
-    jti: Annotated[str, Field(nullable=False, max_length=64, unique=True)]
-    token: Annotated[str, Field(nullable=False, max_length=1024)]
-    is_active: Annotated[bool, Field(default=True, nullable=True)] = True
-    expired_at: Annotated[
-        datetime, Field(sa_column=Column(pg.TIMESTAMP(timezone=True), nullable=False))
-    ]
+    )
+    jti: str = Field(nullable=False, max_length=64, unique=True)
+    token: str = Field(nullable=False, max_length=1024)
+    is_active: bool = Field(default=True, nullable=True)
+    expired_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), nullable=False)
+    )
 
     def __repr__(self):
         return f"<RefreshToken(id={self.id}, user_id={self.user_id}, is_active={self.is_active})>"
 
 
-class Code(SQLModel, table=True, mixins=[DateTimeMixin]):
+class Code(DateTimeMixin, SQLModel, table=True):
     """验证码表 - 存储邮箱验证码和重置密码码"""
 
     __tablename__ = "codes"  # type: ignore[assignment]
@@ -104,29 +100,26 @@ class Code(SQLModel, table=True, mixins=[DateTimeMixin]):
         Index("idx_codes_expires_at_desc", desc("expires_at")),
     )
 
-    id: Annotated[int | None, Field(default=None, primary_key=True)] = None
-    user_id: Annotated[
-        uuid.UUID,
-        Field(
-            sa_column=Column(
-                pg.UUID(as_uuid=True),
-                ForeignKey("users.uid", ondelete="CASCADE"),
-                nullable=False,
-            ),
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID(as_uuid=True),
+            ForeignKey("users.uid", ondelete="CASCADE"),
+            nullable=False,
         ),
-    ]
-    type: Annotated[CodeType, Field(nullable=False)]
-    code: Annotated[str, Field(nullable=False, max_length=10, unique=True)]  # 优化长度
-    is_used: Annotated[bool, Field(default=False, nullable=False)] = False
-    expires_at: Annotated[
-        datetime, Field(sa_column=Column(pg.TIMESTAMP(timezone=True), nullable=False))
-    ]
+    )
+    type: CodeType = Field(nullable=False)
+    code: str = Field(nullable=False, max_length=10, unique=True)  # 优化长度
+    is_used: bool = Field(default=False, nullable=False)
+    expires_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), nullable=False)
+    )
 
     def __repr__(self):
         return f"<Code(id={self.id}, user_id={self.user_id}, type={self.type.name}, is_used={self.is_used})>"
 
 
-class Social_Account(SQLModel, table=True, mixins=[DateTimeMixin]):
+class Social_Account(DateTimeMixin, SQLModel, table=True):
     """社交账户表 - 存储用户的第三方登录账户信息"""
 
     __tablename__ = "social_accounts"  # type: ignore[assignment]
@@ -141,19 +134,16 @@ class Social_Account(SQLModel, table=True, mixins=[DateTimeMixin]):
         ),  # auth/repository.py: get_social_account
     )
 
-    id: Annotated[int | None, Field(default=None, primary_key=True)] = None
-    user_id: Annotated[
-        uuid.UUID,
-        Field(
-            sa_column=Column(
-                pg.UUID(as_uuid=True),
-                ForeignKey("users.uid", ondelete="CASCADE"),
-                nullable=False,
-            ),
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID(as_uuid=True),
+            ForeignKey("users.uid", ondelete="CASCADE"),
+            nullable=False,
         ),
-    ]
-    provider: Annotated[SocialProvider, Field(nullable=False)]
-    provider_user_id: Annotated[str, Field(nullable=False, max_length=100, unique=True)]
+    )
+    provider: SocialProvider = Field(nullable=False)
+    provider_user_id: str = Field(nullable=False, max_length=100, unique=True)
     # 优化长度
 
     def __repr__(self):
