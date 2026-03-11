@@ -59,10 +59,11 @@ app/
 ## 数据模型规范（model.py）
 
 - 所有 ORM 表模型继承 `SQLModel`，并通过 `mixins=[DateTimeMixin]` 附加时间戳字段。
+- 优先使用 SQLModel 内建的属性和 `Field` 参数实现约束、索引、关系等；只有在确实需要 PostgreSQL 特性或复杂表达式时才导入并使用 `sqlalchemy`（例如自定义列类型、函数调用等）。
 - 始终显式声明 `__tablename__`（复数形式，snake_case），并加 `# type: ignore[assignment]`。
 - 字段使用 `Annotated[<type>, Field(...)]` 风格，并在 `Field` 中填写 `description`。
 - 主键统一用 `id: Annotated[int | None, Field(default=None, primary_key=True)]`。
-- 外键字段加 `index=True`，并在 `Field` 中声明 `foreign_key="<table>.<col>"`。
+- 常用查询字段加 `index=True`。
 - 关联关系用 `TYPE_CHECKING` 保护导入，避免循环依赖。
 
 ```python
@@ -209,3 +210,25 @@ async def get_my_service(
 - 日志使用 `loguru`（`from loguru import logger`），禁止使用 `print()`。
 - 导入顺序：标准库 → 第三方库 → 本地模块，各组之间空一行。
 - `TYPE_CHECKING` 保护块仅用于解决循环导入，不用于非类型注解目的。
+
+---
+
+## 提交信息规范
+
+为了保持历史整洁、快速定位变更，每次 `git commit` 请遵循以下中文格式：
+
+1. **前缀使用 emoji + 简短类别**，如 `✨ 新功能`、`🐛 修复`、`🛠️ 重构`、`📄 文档` 等。
+2. 主体描述使用简洁中文，首字母不大写，不带句号。
+3. 必要时在描述后面添加更详细的解释或关联 issue/PR 编号。
+
+示例风格（参考 FastAPI 仓库）：
+```
+✨ 新增用户注册和登录接口 (#123)
+🐛 修复令牌过期时间计算错误
+🛠️ 重构 profile 模块以支持多用户
+📄 更新 README 文档，添加部署说明
+🚀 发布 1.2.0 版本
+```
+
+> 推荐在提交时使用 emoji 来快速区分类型，同时保持消息尽量简洁、中文说明明确。
+
