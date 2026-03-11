@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 from typing import Annotated
 
@@ -13,6 +14,7 @@ from app.auth.schemas import (
 )
 from app.auth.service import AuthService
 from app.core.database import get_session
+from app.users.schema import Token, UserLogin
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -72,10 +74,33 @@ async def revoke_refresh_token(
     response_model=int,
 )
 async def revoke_user_tokens(
-    user_id: Annotated[int, Path(..., description="user id")],
+    user_id: Annotated[uuid.UUID, Path(..., description="user id")],
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
     return await service.revoke_user_tokens(user_id)
+
+
+# ---------- 登录接口 ----------
+
+
+@router.post("/login", response_model=Token)
+async def login(
+    creds: UserLogin,
+    auth_svc: Annotated[AuthService, Depends(get_auth_service)],
+):
+    # use the new helper on AuthService; it raises NotFoundException on failure
+    from app.core.exception import NotFoundException
+
+    try:
+        # model_validator on UserLogin guarantees at least one is non-null
+        identifier = creds.username if creds.username is not None else creds.email  # type: ignore[assignment]
+        assert identifier is not None
+        return await auth_svc.login(identifier, creds.password)
+    except NotFoundException as e:
+        # translate our service-level exception into 401
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e)
+        ) from e
 
 
 # ---------- 验证码相关接口 ----------
@@ -115,7 +140,7 @@ async def verify_code(
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
     return await service.verify_code(
-        user_id=payload.id,
+        user_id=payload.user_id,
         code=payload.code,
         code_type=payload.code_type,
     )
@@ -126,7 +151,7 @@ async def verify_code(
     response_model=VerificationCodeResponse | None,
 )
 async def get_latest_code(
-    user_id: Annotated[int, Path(..., description="user id")],
+    user_id: Annotated[uuid.UUID, Path(..., description="user id")],
     code_type: Annotated[str, Path(..., description="code type")],
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
@@ -138,7 +163,7 @@ async def get_latest_code(
     response_model=int,
 )
 async def invalidate_codes(
-    user_id: Annotated[int, Path(..., description="user id")],
+    user_id: Annotated[uuid.UUID, Path(..., description="user id")],
     code_type: Annotated[str, Path(..., description="code type")],
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):

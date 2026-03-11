@@ -1,4 +1,6 @@
 import secrets
+import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -7,6 +9,9 @@ from app.auth.model import Code, RefreshToken
 from app.auth.repository import CodeCRUD, RefreshTokenCRUD
 from app.auth.schemas import RefreshTokenCreate
 from app.core.exception import NotFoundException
+from app.core.security import create_access_token
+from app.users.repository import UserRepository
+from app.users.schema import Token as TokenSchema
 
 
 class AuthService:
@@ -39,7 +44,7 @@ class AuthService:
             raise NotFoundException("Refresh token not found")
         return True
 
-    async def revoke_user_tokens(self, user_id: int) -> int:
+    async def revoke_user_tokens(self, user_id: "uuid.UUID") -> int:
         return await self._refresh_repo.revoke_user_tokens(user_id)
 
     async def cleanup_expired_refresh_tokens(self) -> int:
@@ -48,7 +53,7 @@ class AuthService:
     # Verification code related
     async def create_verification_code(
         self,
-        user_id: int,
+        user_id: "uuid.UUID",
         code_type: str,
         expiration_minutes: int = 60,
         max_attempts: int = 5,
@@ -64,14 +69,16 @@ class AuthService:
         )
 
     async def get_verification_code(
-        self, user_id: int, code: str, code_type: str
+        self, user_id: "uuid.UUID", code: str, code_type: str
     ) -> Optional[Code]:
         from app.auth.model import CodeType
 
         enum_type = CodeType[code_type] if isinstance(code_type, str) else code_type
         return await self._code_repo.get(user_id, code, enum_type)
 
-    async def verify_code(self, user_id: int, code: str, code_type: str) -> Code | None:
+    async def verify_code(
+        self, user_id: "uuid.UUID", code: str, code_type: str
+    ) -> Code | None:
         from app.auth.model import CodeType
 
         enum_type = CodeType[code_type] if isinstance(code_type, str) else code_type
@@ -80,13 +87,15 @@ class AuthService:
             raise NotFoundException("Verification code not found")
         return db_code
 
-    async def get_latest_code(self, user_id: int, code_type: str) -> Optional[Code]:
+    async def get_latest_code(
+        self, user_id: "uuid.UUID", code_type: str
+    ) -> Optional[Code]:
         from app.auth.model import CodeType
 
         enum_type = CodeType[code_type] if isinstance(code_type, str) else code_type
         return await self._code_repo.get_latest(user_id, enum_type)
 
-    async def invalidate_user_codes(self, user_id: int, code_type: str) -> int:
+    async def invalidate_user_codes(self, user_id: "uuid.UUID", code_type: str) -> int:
         from app.auth.model import CodeType
 
         enum_type = CodeType[code_type] if isinstance(code_type, str) else code_type
@@ -94,3 +103,35 @@ class AuthService:
 
     async def cleanup_expired_verification_codes(self) -> int:
         return await self._code_repo.cleanup_expired()
+
+    # ---- authentication shortcut ----
+    async def login(self, username_or_email: str, password: str) -> TokenSchema:
+        """Validate credentials, emit a JWT token.
+
+        This helper centralizes the traditional "login" flow.  It will
+        issue both an access token and a persistent refresh token.
+        """
+        # use user repository directly to avoid circular imports
+        user = await UserRepository(self._session).authenticate(
+            username_or_email, password
+        )
+        if not user:
+            # repository returns None on failure
+            raise NotFoundException("Invalid username or password")
+
+        # create access token using the uuid string as subject
+        subject = str(user.uid)
+        access = create_access_token(subject)
+
+        # create a refresh token and persist it
+        refresh_str = secrets.token_urlsafe(32)
+        # expiration: use 30 days for now, can come from settings later
+        expires = datetime.now(timezone.utc) + timedelta(days=30)
+        # `uid` is the primary key and should always be set after the user has been
+        # loaded from the database, but help the type checker by asserting.
+        assert user.uid is not None
+        await self.create_refresh_token(
+            RefreshTokenCreate(user_id=user.uid, token=refresh_str, expires_at=expires)
+        )
+
+        return TokenSchema(access_token=access, refresh_token=refresh_str)

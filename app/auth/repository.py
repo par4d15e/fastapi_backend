@@ -1,6 +1,7 @@
 """Token and verification code CRUD operations - sqlmodel"""
 
 import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlmodel import select
@@ -17,7 +18,7 @@ class RefreshTokenCRUD:
 
     async def create(
         self,
-        user_id: int,
+        user_id: "uuid.UUID",
         jti: str,
         token: str,
         expired_at: datetime,
@@ -51,7 +52,7 @@ class RefreshTokenCRUD:
         return result.one_or_none()
 
     async def get_user_tokens(
-        self, user_id: int, include_inactive: bool = False
+        self, user_id: "uuid.UUID", include_inactive: bool = False
     ) -> list[RefreshToken]:
         """获取属于指定用户的所有刷新令牌
 
@@ -76,7 +77,7 @@ class RefreshTokenCRUD:
         await self.session.commit()
         return True
 
-    async def revoke_user_tokens(self, user_id: int) -> int:
+    async def revoke_user_tokens(self, user_id: "uuid.UUID") -> int:
         """将用户的所有活动令牌标记为不活动，返回受影响数量。"""
         tokens = await self.get_user_tokens(user_id, include_inactive=False)
 
@@ -118,7 +119,7 @@ class CodeCRUD:
 
     async def create(
         self,
-        user_id: int,
+        user_id: "uuid.UUID",
         code_type: CodeType,
         expiration_minutes: int = 60,
     ) -> Code:
@@ -138,7 +139,9 @@ class CodeCRUD:
         await self.session.refresh(db_code)
         return db_code
 
-    async def get(self, user_id: int, code: str, code_type: CodeType) -> Code | None:
+    async def get(
+        self, user_id: "uuid.UUID", code: str, code_type: CodeType
+    ) -> Code | None:
         """获取验证码"""
         statement = select(Code).where(
             Code.user_id == user_id,
@@ -149,7 +152,9 @@ class CodeCRUD:
         result = await self.session.exec(statement)
         return result.one_or_none()
 
-    async def verify(self, user_id: int, code: str, code_type: CodeType) -> Code | None:
+    async def verify(
+        self, user_id: "uuid.UUID", code: str, code_type: CodeType
+    ) -> Code | None:
         """验证验证码并标记为已使用
 
         如果记录不存在或已被标记过，返回 `None`
@@ -165,7 +170,9 @@ class CodeCRUD:
         await self.session.refresh(db_code)
         return db_code
 
-    async def get_latest(self, user_id: int, code_type: CodeType) -> Code | None:
+    async def get_latest(
+        self, user_id: "uuid.UUID", code_type: CodeType
+    ) -> Code | None:
         """获取用户最新的验证码"""
         statement = (
             select(Code)
@@ -178,7 +185,9 @@ class CodeCRUD:
         result = await self.session.exec(statement)
         return result.one_or_none()
 
-    async def invalidate_user_codes(self, user_id: int, code_type: CodeType) -> int:
+    async def invalidate_user_codes(
+        self, user_id: "uuid.UUID", code_type: CodeType
+    ) -> int:
         """将用户所有未使用的验证码标记为已使用"""
         statement = select(Code).where(
             Code.user_id == user_id,

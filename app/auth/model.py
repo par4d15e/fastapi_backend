@@ -1,8 +1,10 @@
+import uuid
 from datetime import datetime
 from enum import IntEnum
 from typing import Annotated
 
 import sqlalchemy.dialects.postgresql as pg
+from sqlalchemy import ForeignKey
 from sqlmodel import (
     Column,
     Field,
@@ -55,8 +57,14 @@ class RefreshToken(SQLModel, table=True, mixins=[DateTimeMixin]):
 
     id: Annotated[int | None, Field(default=None, primary_key=True)] = None
     user_id: Annotated[
-        int,
-        Field(foreign_key="users.id", ondelete="CASCADE", nullable=False),
+        uuid.UUID,
+        Field(
+            sa_column=Column(
+                pg.UUID(as_uuid=True),
+                ForeignKey("users.uid", ondelete="CASCADE"),
+                nullable=False,
+            ),
+        ),
     ]
     jti: Annotated[str, Field(nullable=False, max_length=64, unique=True)]
     token: Annotated[str, Field(nullable=False, max_length=1024)]
@@ -98,8 +106,14 @@ class Code(SQLModel, table=True, mixins=[DateTimeMixin]):
 
     id: Annotated[int | None, Field(default=None, primary_key=True)] = None
     user_id: Annotated[
-        int,
-        Field(foreign_key="users.id", ondelete="CASCADE", nullable=False),
+        uuid.UUID,
+        Field(
+            sa_column=Column(
+                pg.UUID(as_uuid=True),
+                ForeignKey("users.uid", ondelete="CASCADE"),
+                nullable=False,
+            ),
+        ),
     ]
     type: Annotated[CodeType, Field(nullable=False)]
     code: Annotated[str, Field(nullable=False, max_length=10, unique=True)]  # 优化长度
@@ -129,8 +143,14 @@ class Social_Account(SQLModel, table=True, mixins=[DateTimeMixin]):
 
     id: Annotated[int | None, Field(default=None, primary_key=True)] = None
     user_id: Annotated[
-        int,
-        Field(foreign_key="users.id", ondelete="CASCADE", nullable=False, index=True),
+        uuid.UUID,
+        Field(
+            sa_column=Column(
+                pg.UUID(as_uuid=True),
+                ForeignKey("users.uid", ondelete="CASCADE"),
+                nullable=False,
+            ),
+        ),
     ]
     provider: Annotated[SocialProvider, Field(nullable=False)]
     provider_user_id: Annotated[str, Field(nullable=False, max_length=100, unique=True)]

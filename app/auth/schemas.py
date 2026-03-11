@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import Annotated
 
@@ -9,9 +10,10 @@ from sqlmodel import Field, SQLModel
 
 class RefreshTokenCreate(SQLModel):
     """刷新令牌创建 Schema"""
+
     device_name: Annotated[str | None, Field(None, max_length=200)] = None
     device_type: Annotated[str | None, Field(None, max_length=50)] = None
-    user_id: Annotated[int, Field(...)]
+    user_id: Annotated[uuid.UUID, Field(...)]
     token: Annotated[str, Field(...)]
     expires_at: Annotated[datetime, Field(...)]
     ip_address: Annotated[str | None, Field(None)] = None
@@ -24,7 +26,7 @@ class RefreshTokenResponse(SQLModel):
     device_name: Annotated[str | None, Field(None, max_length=200)]
     device_type: Annotated[str | None, Field(None, max_length=50)]
     id: int
-    user_id: int
+    user_id: uuid.UUID
     expires_at: datetime
     is_revoked: bool
     created_at: datetime
@@ -62,7 +64,7 @@ class VerificationCodeCreate(SQLModel):
     """验证码创建 Schema"""
 
     code_type: Annotated[str, Field(..., description="生成令牌相关 schema")]
-    user_id: Annotated[int, Field(...)]
+    user_id: Annotated[uuid.UUID, Field(...)]
     code: Annotated[str, Field(...)]
     expires_at: Annotated[datetime, Field(...)]
     max_attempts: Annotated[int, Field(5)] = 5
@@ -73,7 +75,7 @@ class VerificationCodeResponse(SQLModel):
 
     code_type: Annotated[str, Field(..., description="生成令牌相关 schema")]
     id: int
-    user_id: int
+    user_id: uuid.UUID
     expires_at: datetime
     is_used: bool
     attempts: int
@@ -84,7 +86,7 @@ class VerificationCodeResponse(SQLModel):
 class VerificationCodeVerify(SQLModel):
     """验证码验证 Schema"""
 
-    id: Annotated[int, Field(...)]
+    user_id: Annotated[uuid.UUID, Field(...)]
     code: Annotated[str, Field(..., min_length=4, max_length=10)]
     code_type: Annotated[str, Field(..., description="生成令牌相关 schema")]
 
