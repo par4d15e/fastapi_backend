@@ -1,9 +1,6 @@
-import pytest
-
 from app.core import security
 
 
-@pytest.mark.anyio
 async def test_login_success(client):
     # create a user via the public users endpoint
     payload = {"username": "john", "email": "john@example.com", "password": "secret123"}
@@ -27,7 +24,7 @@ async def test_login_success(client):
     info = r2.json()
     # token itself is not exposed, but we should get metadata
     assert "id" in info
-    assert info.get("is_revoked") is False
+    assert info.get("is_active") is True
 
     # revoke all tokens for this user should affect at least one
     user_id = info["user_id"]
@@ -36,13 +33,12 @@ async def test_login_success(client):
     assert isinstance(r3.json(), int)
 
 
-@pytest.mark.anyio
 async def test_login_wrong_password(client):
-    payload = {"username": "jane", "email": "jane@example.com", "password": "pw"}
+    payload = {"username": "jane", "email": "jane@example.com", "password": "pw123456"}
     r = await client.post("/users/", json=payload)
     assert r.status_code == 201
 
     resp = await client.post(
-        "/auth/login", json={"email": "jane@example.com", "password": "wrong"}
+        "/auth/login", json={"email": "jane@example.com", "password": "wrongpassword"}
     )
     assert resp.status_code == 401

@@ -1,10 +1,7 @@
-import pytest
-
 from app.profiles.repo_repoutil import ProfileRepoUtil
 from app.profiles.schema import ProfileCreate, ProfileUpdate
 
 
-@pytest.mark.anyio
 async def test_profile_repo_repoutil_crud(session_factory):
     async with session_factory() as session:
         repo = ProfileRepoUtil(session)

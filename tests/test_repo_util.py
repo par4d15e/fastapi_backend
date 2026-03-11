@@ -1,11 +1,8 @@
-import pytest
-
 from app.core.repo_util import RepoUtil
 from app.profiles.model import Profile
 from app.profiles.schema import ProfileCreate
 
 
-@pytest.mark.anyio
 async def test_repo_util_crud(session_factory):
     async with session_factory() as session:
         # create via model
@@ -36,7 +33,6 @@ async def test_repo_util_crud(session_factory):
             assert got_after is None
 
 
-@pytest.mark.anyio
 async def test_repo_util_create_instance(session_factory):
     async with session_factory() as session:
         entity = Profile(name="x", gender="female", variety="v4", birthday=None)

@@ -13,9 +13,10 @@ async def test_lifespan_calls(monkeypatch):
     async def fake_dispose():
         called["dispose"] = True
 
-    monkeypatch.setattr("app.core.database.db.create_tables", fake_create)
-
     class FakeDB:
+        async def create_tables(self):
+            await fake_create()
+
         async def dispose(self):
             await fake_dispose()
 
