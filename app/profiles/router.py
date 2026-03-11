@@ -22,7 +22,7 @@ async def get_profile_service(
 
 @router.post("/", response_model=ProfileResponse, status_code=201)
 async def create_profile(
-    profile_data: Annotated[ProfileCreate, Depends()],
+    profile_data: ProfileCreate,
     service: Annotated[ProfileService, Depends(get_profile_service)],
 ):
     new_profile = await service.create_profile(profile_data)

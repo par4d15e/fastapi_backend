@@ -5,7 +5,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.database import get_session
 from app.weights.repository import WeightRecordRepository
-from app.weights.schema import WeightRecordCreate, WeightRecordResponse, WeightRecordUpdate
+from app.weights.schema import (
+    WeightRecordCreate,
+    WeightRecordResponse,
+    WeightRecordUpdate,
+)
 from app.weights.service import WeightRecordService
 
 router = APIRouter(prefix="/weights", tags=["weights"])
@@ -29,10 +33,10 @@ async def create_weight_record(
 @router.get("/", response_model=list[WeightRecordResponse])
 async def list_weight_records(
     service: Annotated[WeightRecordService, Depends(get_weight_service)],
-    order_by: Annotated[str, Query("measured_at", description="排序字段")] = "measured_at",
-    direction: Annotated[str, Query("desc", description="排序方向 asc/desc")] = "desc",
-    limit: Annotated[int, Query(10, ge=1, le=500, description="每页数量")] = 10,
-    offset: Annotated[int, Query(0, ge=0, description="偏移量")] = 0,
+    order_by: Annotated[str, Query(description="排序字段")] = "measured_at",
+    direction: Annotated[str, Query(description="排序方向 asc/desc")] = "desc",
+    limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
+    offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
     """获取所有体重记录"""
     return await service.list_records(
@@ -47,10 +51,10 @@ async def list_weight_records(
 async def list_weight_records_by_profile(
     profile_id: Annotated[int, Path(..., description="宠物ID")],
     service: Annotated[WeightRecordService, Depends(get_weight_service)],
-    order_by: Annotated[str, Query("measured_at", description="排序字段")] = "measured_at",
-    direction: Annotated[str, Query("desc", description="排序方向 asc/desc")] = "desc",
-    limit: Annotated[int, Query(10, ge=1, le=500, description="每页数量")] = 10,
-    offset: Annotated[int, Query(0, ge=0, description="偏移量")] = 0,
+    order_by: Annotated[str, Query(description="排序字段")] = "measured_at",
+    direction: Annotated[str, Query(description="排序方向 asc/desc")] = "desc",
+    limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
+    offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
     """获取指定宠物的体重记录列表"""
     return await service.list_records_by_profile(

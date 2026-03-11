@@ -33,8 +33,8 @@ async def create_reminder(
 async def search_reminders_by_title(
     keyword: Annotated[str, Query(..., description="标题关键词（支持模糊匹配）")],
     service: Annotated[ReminderService, Depends(get_reminder_service)],
-    limit: Annotated[int, Query(10, ge=1, le=500, description="每页数量")] = 10,
-    offset: Annotated[int, Query(0, ge=0, description="偏移量")] = 0,
+    limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
+    offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
     return await service.search_reminders_by_title(keyword, limit=limit, offset=offset)
 

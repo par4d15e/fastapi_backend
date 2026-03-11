@@ -202,7 +202,7 @@ class NutritionService:
         neutered = (
             payload.neutered_override
             if payload.neutered_override is not None
-            else profile.neutered
+            else profile.is_neutered
         )
         if neutered:
             # 成年绝育犬: 1.2-1.4，取中值 1.3
