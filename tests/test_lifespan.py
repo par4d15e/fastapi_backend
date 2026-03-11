@@ -23,6 +23,9 @@ async def test_lifespan_calls(monkeypatch):
     monkeypatch.setattr("app.core.lifespan.db", FakeDB())
 
     config.settings.debug = True
-    async with lifespan.lifespan(None):
+    # pass a minimal FastAPI instance instead of None to satisfy type checker
+    from fastapi import FastAPI
+
+    async with lifespan.lifespan(FastAPI()):
         assert called["create"]
     assert called["dispose"]
