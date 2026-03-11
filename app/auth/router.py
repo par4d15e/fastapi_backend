@@ -14,7 +14,9 @@ from app.auth.schemas import (
 )
 from app.auth.service import AuthService
 from app.core.database import get_session
-from app.users.schema import Token, UserLogin
+from app.users.repository import UserRepository
+from app.users.schema import Token, UserCreate, UserLogin, UserResponse
+from app.users.service import UserService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -24,6 +26,26 @@ async def get_auth_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> AuthService:
     return AuthService(session)
+
+
+async def get_user_service(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> UserService:
+    return UserService(UserRepository(session))
+
+
+# ---------- 注册接口 ----------
+
+
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
+async def register(
+    user_data: UserCreate,
+    service: Annotated[UserService, Depends(get_user_service)],
+):
+    """用户注册：创建新账户并返回用户信息"""
+    return await service.create_user(user_data)
 
 
 # ---------- 刷新令牌相关接口 ----------
