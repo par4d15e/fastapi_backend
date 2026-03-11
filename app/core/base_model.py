@@ -25,7 +25,7 @@ SQLModel.metadata = MetaData(naming_convention=database_naming_convention)
 
 class DateTimeMixin(SQLModel):
     """
-    PostgreSQL 专用的 created_at / updated_at 实现 (使用数据库端 now())
+    PostgreSQL 专用的 created_at / updated_at 实现 (使用数据库端 `now()`)
     """
 
     created_at: Annotated[

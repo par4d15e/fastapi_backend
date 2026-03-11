@@ -5,9 +5,11 @@ from app.auth import router as auth_routers
 from app.core.exception import register_exception_handlers
 from app.core.lifespan import lifespan
 from app.foods import router as food_routers
+from app.nutrition import router as nutrition_routers
 from app.profiles import router as profile_routers
 from app.reminders import router as reminder_routers
 from app.users import router as user_routers
+from app.weights import router as weight_routers
 
 
 def create_app() -> FastAPI:
@@ -30,9 +32,11 @@ def create_app() -> FastAPI:
     # 路由注册
     app.include_router(profile_routers.router, prefix="", tags=["profile"])
     app.include_router(food_routers.router, prefix="", tags=["food"])
+    app.include_router(nutrition_routers.router, prefix="", tags=["nutrition"])
     app.include_router(reminder_routers.router, prefix="", tags=["reminder"])
     app.include_router(auth_routers.router, prefix="", tags=["auth"])
     app.include_router(user_routers.router, prefix="", tags=["users"])
+    app.include_router(weight_routers.router, prefix="", tags=["weights"])
 
     # 健康检查
     @app.get("/healthz", tags=["health"])

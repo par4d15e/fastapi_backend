@@ -91,10 +91,12 @@ if not settings.debug:
         warnings.warn(
             f"Missing DB settings in production (.env or env vars): {', '.join(missing)}",
             RuntimeWarning,
+            stacklevel=2,
         )
     # JWT 密钥最好存在
     if not settings.jwt_secret:
         warnings.warn(
-            "Missing 'jwt_secret' in production. Please set it via .env or environment variables.",
+            'Missing "jwt_secret" in production. Please set it via .env or environment variables.',
             RuntimeWarning,
+            stacklevel=2,
         )
