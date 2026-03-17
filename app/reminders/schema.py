@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from sqlmodel import Field, SQLModel
+from pydantic import BaseModel, Field
 
 
-class ReminderCreate(SQLModel):
+class ReminderCreate(BaseModel):
     """创建提醒"""
 
     title: str = Field(..., max_length=100, description="提醒事项标题")
@@ -14,7 +14,7 @@ class ReminderCreate(SQLModel):
     profile_id: int = Field(..., description="宠物ID")
 
 
-class ReminderUpdate(SQLModel):
+class ReminderUpdate(BaseModel):
     """更新提醒（部分可选）"""
 
     title: str | None = Field(None, max_length=100, description="提醒事项标题")
@@ -25,8 +25,10 @@ class ReminderUpdate(SQLModel):
     profile_id: int | None = Field(None, description="宠物ID")
 
 
-class ReminderResponse(SQLModel):
+class ReminderResponse(BaseModel):
     """提醒响应"""
+
+    model_config = {"from_attributes": True}
 
     id: int
     title: str = Field(..., max_length=100, description="提醒事项标题")

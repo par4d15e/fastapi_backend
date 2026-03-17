@@ -1,17 +1,23 @@
+from __future__ import annotations
+
 from datetime import date
 from typing import TYPE_CHECKING
+from uuid import UUID
 
-from sqlmodel import Field, Index, Relationship, SQLModel, desc
+import sqlalchemy as sa
+from sqlalchemy import ForeignKey, Index, String, desc
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.base_model import DateTimeMixin
+from app.core.base_model import Base, DateTimeMixin
 
 if TYPE_CHECKING:
     from app.reminders.model import Reminder
+    from app.users.model import User
     from app.weights.model import WeightRecord
 
 
-class Profile(DateTimeMixin, SQLModel, table=True):
-    __tablename__ = "profiles"  # type: ignore[assignment]
+class Profile(DateTimeMixin, Base):
+    __tablename__ = "profiles"
 
     __table_args__ = (
         # 复合索引
@@ -25,22 +31,32 @@ class Profile(DateTimeMixin, SQLModel, table=True):
         Index("idx_profiles_updated_at_desc", desc("updated_at")),
     )
 
-    id: int | None = Field(default=None, primary_key=True, description="宠物ID")
-    name: str = Field(..., max_length=100, unique=True, description="姓名")
-    gender: str = Field(..., max_length=20, description="性别")
-    variety: str = Field(..., max_length=100, description="品种")
-    birthday: date | None = Field(default=None, description="生日")
-    meals_per_day: int = Field(default=2, description="每日餐数")
-    is_neutered: bool = Field(default=False, description="是否绝育")
-    is_obese: bool = Field(default=False, description="是否肥胖")
-    activity_level: str = Field(
-        default="medium", max_length=20, description="活动水平: 低/中/高"
+    id: Mapped[int] = mapped_column(primary_key=True, comment="宠物ID")
+    name: Mapped[str] = mapped_column(String(100), unique=True, comment="姓名")
+    gender: Mapped[str] = mapped_column(String(20), comment="性别")
+    variety: Mapped[str] = mapped_column(String(100), comment="品种")
+    birthday: Mapped[date | None] = mapped_column(sa.Date, comment="生日")
+    meals_per_day: Mapped[int] = mapped_column(default=2, comment="每日餐数")
+    is_neutered: Mapped[bool] = mapped_column(default=False, comment="是否绝育")
+    is_obese: Mapped[bool] = mapped_column(default=False, comment="是否肥胖")
+    activity_level: Mapped[str] = mapped_column(
+        String(20), default="medium", comment="活动水平: 低/中/高"
     )
-    description: str | None = Field(default=None, max_length=255, description="描述")
+    description: Mapped[str | None] = mapped_column(String(255), comment="描述")
 
-    # 关系属性（非列）
-    reminders: list["Reminder"] = Relationship(back_populates="profile")
-    weight_records: list["WeightRecord"] = Relationship(back_populates="profile")
+    # 关联用户
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("user.id"), index=True, comment="所属用户ID"
+    )
+    user: Mapped[User | None] = relationship("User", back_populates="profiles")
+
+    # 关系
+    reminders: Mapped[list[Reminder]] = relationship(
+        "Reminder", back_populates="profile"
+    )
+    weight_records: Mapped[list[WeightRecord]] = relationship(
+        "WeightRecord", back_populates="profile"
+    )
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
         return f"<Profile(id={self.id}, name={self.name})>"

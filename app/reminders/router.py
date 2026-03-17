@@ -1,10 +1,9 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
-from app.core.exception import NotFoundException
 from app.reminders.repository import ReminderRepository
 from app.reminders.schema import ReminderCreate, ReminderResponse, ReminderUpdate
 from app.reminders.service import ReminderService
@@ -22,11 +21,47 @@ async def get_reminder_service(
 
 @router.post("/", response_model=ReminderResponse, status_code=201)
 async def create_reminder(
-    reminder_data: Annotated[ReminderCreate, Depends()],
+    reminder_data: ReminderCreate,
     service: Annotated[ReminderService, Depends(get_reminder_service)],
 ):
     new_reminder = await service.create_reminder(reminder_data)
     return new_reminder
+
+
+@router.get("/", response_model=list[ReminderResponse])
+async def list_reminders(
+    service: Annotated[ReminderService, Depends(get_reminder_service)],
+    search: Annotated[str | None, Query(description="搜索关键词")] = None,
+    order_by: Annotated[str, Query(description="排序字段")] = "id",
+    direction: Annotated[str, Query(description="排序方向 asc/desc")] = "asc",
+    limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
+    offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
+):
+    return await service.list_reminders(
+        search=search,
+        order_by=order_by,
+        direction=direction,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/by-profile/{profile_id}", response_model=list[ReminderResponse])
+async def list_reminders_by_profile(
+    profile_id: Annotated[int, Path(..., description="宠物ID")],
+    service: Annotated[ReminderService, Depends(get_reminder_service)],
+    order_by: Annotated[str, Query(description="排序字段")] = "due_date",
+    direction: Annotated[str, Query(description="排序方向 asc/desc")] = "asc",
+    limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
+    offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
+):
+    return await service.list_reminders_by_profile(
+        profile_id,
+        order_by=order_by,
+        direction=direction,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/search", response_model=list[ReminderResponse])
@@ -39,15 +74,12 @@ async def search_reminders_by_title(
     return await service.search_reminders_by_title(keyword, limit=limit, offset=offset)
 
 
-@router.get("/{reminder_title}", response_model=ReminderResponse)
+@router.get("/{reminder_id}", response_model=ReminderResponse)
 async def get_reminder(
-    reminder_title: Annotated[str, Path(..., description="提醒事项标题")],
+    reminder_id: Annotated[int, Path(..., description="提醒事项ID")],
     service: Annotated[ReminderService, Depends(get_reminder_service)],
 ):
-    reminder = await service.get_reminder_by_title(reminder_title)
-    if not reminder:
-        raise NotFoundException("Reminder not found")
-    return reminder
+    return await service.get_reminder_by_id(reminder_id)
 
 
 @router.patch("/{reminder_id}", response_model=ReminderResponse)

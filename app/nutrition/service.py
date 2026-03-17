@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from app.core.exception import NotFoundException
 from app.foods.repository import FoodRepository
 from app.nutrition.schema import (
-    NutritionAchieved,
     NutritionFoodItem,
     NutritionFoodPlan,
     NutritionPlanCreate,
@@ -71,17 +70,6 @@ class NutritionService:
 
         total_grams = round(sum(item.grams for item in plans), 2)
         total_kcals = round(sum(item.kcals for item in plans), 2)
-        achieved = self._calc_achieved_nutrients(plans, resolved_foods)
-
-        if payload.goal.protein_g is not None and achieved.protein_g is not None:
-            if achieved.protein_g < payload.goal.protein_g:
-                notes.append("protein target not fully reached")
-        if payload.goal.fat_g is not None and achieved.fat_g is not None:
-            if achieved.fat_g < payload.goal.fat_g:
-                notes.append("fat target not fully reached")
-        if payload.goal.carb_g is not None and achieved.carb_g is not None:
-            if achieved.carb_g < payload.goal.carb_g:
-                notes.append("carb target not fully reached")
 
         return NutritionPlanResponse(
             profile_id=payload.profile_id,
@@ -90,7 +78,6 @@ class NutritionService:
             total_grams=total_grams,
             total_kcals=total_kcals,
             foods=plans,
-            achieved=achieved,
             notes=notes,
         )
 
@@ -268,35 +255,3 @@ class NutritionService:
             )
 
         return plans, notes
-
-    def _calc_achieved_nutrients(
-        self,
-        plans: list[NutritionFoodPlan],
-        foods: list[_ResolvedFood],
-    ) -> NutritionAchieved:
-        food_map = {food.food_id: food for food in foods}
-        protein_total = 0.0
-        fat_total = 0.0
-        carb_total = 0.0
-
-        has_protein = False
-        has_fat = False
-        has_carb = False
-
-        for plan in plans:
-            item = food_map[plan.food_id]
-            if item.protein_g_per_g is not None:
-                has_protein = True
-                protein_total += plan.grams * item.protein_g_per_g
-            if item.fat_g_per_g is not None:
-                has_fat = True
-                fat_total += plan.grams * item.fat_g_per_g
-            if item.carb_g_per_g is not None:
-                has_carb = True
-                carb_total += plan.grams * item.carb_g_per_g
-
-        return NutritionAchieved(
-            protein_g=round(protein_total, 2) if has_protein else None,
-            fat_g=round(fat_total, 2) if has_fat else None,
-            carb_g=round(carb_total, 2) if has_carb else None,
-        )

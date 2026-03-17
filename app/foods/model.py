@@ -1,10 +1,20 @@
-from sqlmodel import Field, Index, SQLModel, desc
+from __future__ import annotations
 
-from app.core.base_model import DateTimeMixin
+from typing import TYPE_CHECKING
+from uuid import UUID
+
+import sqlalchemy as sa
+from sqlalchemy import ForeignKey, Index, String, desc
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.base_model import Base, DateTimeMixin
+
+if TYPE_CHECKING:
+    from app.users.model import User
 
 
-class Food(DateTimeMixin, SQLModel, table=True):
-    __tablename__ = "foods"  # type: ignore[assignment]
+class Food(DateTimeMixin, Base):
+    __tablename__ = "foods"
     __table_args__ = (
         # 复合索引
         Index("idx_foods_brand_name", "brand", "name"),  # 按品牌+名称筛选
@@ -14,22 +24,25 @@ class Food(DateTimeMixin, SQLModel, table=True):
         Index("idx_foods_updated_at_desc", desc("updated_at")),
     )
 
-    id: int | None = Field(default=None, primary_key=True, description="编号")
-
-    name: str = Field(..., max_length=100, unique=True, index=True, description="名称")
-
-    brand: str = Field(..., max_length=100, description="品牌")
-    metabolic_energy: float | None = Field(
-        default=None, ge=0, index=True, description="代谢能(卡路里/千克)"
+    id: Mapped[int] = mapped_column(primary_key=True, comment="编号")
+    name: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, comment="名称"
     )
-
-    price: float | None = Field(default=None, ge=0, index=True, description="价格")
-
-    weight: float | None = Field(
-        default=None, ge=0, index=True, description="重量(千克)"
+    brand: Mapped[str] = mapped_column(String(100), comment="品牌")
+    metabolic_energy: Mapped[float | None] = mapped_column(
+        sa.Float, index=True, comment="代谢能(卡路里/千克)"
     )
+    price: Mapped[float | None] = mapped_column(sa.Float, index=True, comment="价格")
+    weight: Mapped[float | None] = mapped_column(
+        sa.Float, index=True, comment="重量(千克)"
+    )
+    description: Mapped[str | None] = mapped_column(String(255), comment="描述")
 
-    description: str | None = Field(default=None, max_length=255, description="描述")
+    # 外键及关系（与 User 关联）
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("user.id"), index=True, comment="所属用户ID"
+    )
+    user: Mapped[User | None] = relationship("User", back_populates="foods")
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
         return f"<Food(id={self.id}, name={self.name})>"

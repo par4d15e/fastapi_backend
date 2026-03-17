@@ -4,10 +4,10 @@ from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-from sqlmodel import SQLModel
 
 from alembic import context
 from app.core import models  # noqa: F401  # 保证所有 model 已被载入
+from app.core.base_model import Base
 from app.core.config import settings
 
 # 从 settings 读取数据库连接 URL
@@ -27,7 +27,7 @@ if config.config_file_name is not None:
 # 来自 myapp 导入模型示例：
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = SQLModel.metadata
+target_metadata = Base.metadata
 
 # env.py 所需的其他配置值也可以获取：
 # my_important_option = config.get_main_option("my_important_option")

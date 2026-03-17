@@ -1,7 +1,7 @@
-from sqlmodel import Field, SQLModel
+from pydantic import BaseModel, Field
 
 
-class FoodCreate(SQLModel):
+class FoodCreate(BaseModel):
     name: str = Field(..., max_length=100, description="名称")
     brand: str = Field(..., max_length=100, description="品牌")
     metabolic_energy: float | None = Field(
@@ -12,7 +12,7 @@ class FoodCreate(SQLModel):
     description: str | None = Field(None, max_length=255, description="描述")
 
 
-class FoodUpdate(SQLModel):
+class FoodUpdate(BaseModel):
     name: str | None = Field(None, max_length=100, description="名称")
     brand: str | None = Field(None, max_length=100, description="品牌")
     metabolic_energy: float | None = Field(
@@ -23,7 +23,9 @@ class FoodUpdate(SQLModel):
     description: str | None = Field(None, max_length=255, description="描述")
 
 
-class FoodResponse(SQLModel):
+class FoodResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
     id: int
     name: str = Field(..., max_length=100, description="名称")
     brand: str = Field(..., max_length=100, description="品牌")

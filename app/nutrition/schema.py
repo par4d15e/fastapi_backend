@@ -1,7 +1,7 @@
-from sqlmodel import Field, SQLModel
+from pydantic import BaseModel, Field
 
 
-class NutritionFoodItem(SQLModel):
+class NutritionFoodItem(BaseModel):
     """单个候选食品"""
 
     food_id: int = Field(..., description="食品ID")
@@ -17,7 +17,7 @@ class NutritionFoodItem(SQLModel):
     carb_g_per_g: float | None = Field(None, ge=0, description="碳水密度(g/g)")
 
 
-class NutritionGoal(SQLModel):
+class NutritionGoal(BaseModel):
     """目标约束"""
 
     daily_kcals: float | None = Field(
@@ -28,7 +28,7 @@ class NutritionGoal(SQLModel):
     carb_g: float | None = Field(None, ge=0, description="碳水目标(g)")
 
 
-class NutritionPlanCreate(SQLModel):
+class NutritionPlanCreate(BaseModel):
     """营养计划计算请求"""
 
     profile_id: int = Field(..., description="宠物ID")
@@ -53,7 +53,7 @@ class NutritionPlanCreate(SQLModel):
     )
 
 
-class NutritionFoodPlan(SQLModel):
+class NutritionFoodPlan(BaseModel):
     food_id: int
     food_name: str
     kcals_per_g: float
@@ -61,18 +61,11 @@ class NutritionFoodPlan(SQLModel):
     kcals: float
 
 
-class NutritionAchieved(SQLModel):
-    protein_g: float | None = Field(None, ge=0)
-    fat_g: float | None = Field(None, ge=0)
-    carb_g: float | None = Field(None, ge=0)
-
-
-class NutritionPlanResponse(SQLModel):
+class NutritionPlanResponse(BaseModel):
     profile_id: int
     weight_g: int
     daily_kcals_target: float
     total_grams: float
     total_kcals: float
     foods: list[NutritionFoodPlan]
-    achieved: NutritionAchieved
     notes: list[str]

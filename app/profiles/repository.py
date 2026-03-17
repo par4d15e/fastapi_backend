@@ -1,8 +1,8 @@
 from typing import Any, Mapping
 
+from sqlalchemy import asc, desc, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import asc, col, desc, or_, select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.profiles.model import Profile
 
@@ -21,10 +21,10 @@ class ProfileRepository:
         return profile
 
     async def get_by_name(self, profile_name: str) -> Profile | None:
-        statement = select(Profile).where(Profile.name == profile_name)
-        result = await self.session.exec(statement)
-        profile = result.one_or_none()
-        return profile
+        result = await self.session.execute(
+            select(Profile).where(Profile.name == profile_name)
+        )
+        return result.scalar_one_or_none()
 
     async def get_all(
         self,
@@ -43,8 +43,8 @@ class ProfileRepository:
             pattern = f"%{search}%"
             query = query.where(
                 or_(
-                    col(Profile.name).ilike(pattern),
-                    col(Profile.description).ilike(pattern),
+                    Profile.name.ilike(pattern),
+                    Profile.description.ilike(pattern),
                 )
             )
 
@@ -61,9 +61,8 @@ class ProfileRepository:
         limit = min(limit, 500)
         offset = max(offset, 0)
         paginated_query = query.offset(offset).limit(limit)
-        profiles = list(await self.session.exec(paginated_query))
-
-        return profiles
+        result = await self.session.execute(paginated_query)
+        return list(result.scalars().all())
 
     async def create(self, profile_data: Mapping[str, Any]) -> Profile:
         profile = Profile(**profile_data)

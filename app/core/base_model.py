@@ -2,7 +2,7 @@ from datetime import datetime
 
 import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy import MetaData, func
-from sqlmodel import Field, SQLModel
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 # 保持原有的命名约定 (用于 Alembic / metadata.create_all)
 database_naming_convention = {
@@ -18,29 +18,28 @@ database_naming_convention = {
     "pk": "pk_%(table_name)s_%(column_0_name)s",
 }
 
-# 将命名约定应用到 sqlmodel 的全局 metadata
-SQLModel.metadata = MetaData(naming_convention=database_naming_convention)
+
+class Base(DeclarativeBase):
+    metadata = MetaData(naming_convention=database_naming_convention)
 
 
-class DateTimeMixin(SQLModel):
-    """
-    PostgreSQL 专用的 created_at / updated_at 实现 (使用数据库端 `now()`)
-    使用 sa_type + sa_column_kwargs 避免多模型继承时 Column 对象被共享的问题。
-    """
+class DateTimeMixin:
+    @declared_attr  # type: ignore[misc]
+    def created_at(cls) -> Mapped[datetime]:
+        return mapped_column(
+            pg.TIMESTAMP(timezone=True),
+            server_default=func.now(),
+            nullable=False,
+            index=True,
+            comment="创建时间（数据库自动生成）",
+        )
 
-    created_at: datetime | None = Field(
-        default=None,
-        sa_type=pg.TIMESTAMP(timezone=True),  # type: ignore[arg-type]
-        sa_column_kwargs={"server_default": func.now()},
-        nullable=False,
-        index=True,
-        description="创建时间（数据库自动生成）",
-    )
-
-    updated_at: datetime | None = Field(
-        default=None,
-        sa_type=pg.TIMESTAMP(timezone=True),  # type: ignore[arg-type]
-        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
-        nullable=False,
-        description="更新时间（数据库自动生成/刷新）",
-    )
+    @declared_attr  # type: ignore[misc]
+    def updated_at(cls) -> Mapped[datetime]:
+        return mapped_column(
+            pg.TIMESTAMP(timezone=True),
+            server_default=func.now(),
+            onupdate=func.now(),
+            nullable=False,
+            comment="更新时间（数据库自动生成/刷新）",
+        )

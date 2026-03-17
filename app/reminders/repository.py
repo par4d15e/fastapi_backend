@@ -1,8 +1,8 @@
 from typing import Any, Mapping
 
+from sqlalchemy import asc, desc, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import asc, col, desc, or_, select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.reminders.model import Reminder
 
@@ -20,11 +20,29 @@ class ReminderRepository:
 
         return reminder
 
-    async def get_by_title(self, title: str) -> Reminder | None:
-        statement = select(Reminder).where(Reminder.title == title)
-        result = await self.session.exec(statement)
-        reminder = result.one_or_none()
-        return reminder
+    async def get_by_profile_id(
+        self,
+        profile_id: int,
+        *,
+        order_by: str = "due_date",
+        direction: str = "asc",
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[Reminder]:
+        query = select(Reminder).where(Reminder.profile_id == profile_id)
+
+        allowed_sort = {"id", "title", "due_date", "created_at"}
+        if order_by not in allowed_sort:
+            order_by = "due_date"
+        order_column = getattr(Reminder, order_by, Reminder.due_date)
+        query = query.order_by(
+            desc(order_column) if direction == "desc" else asc(order_column)
+        )
+
+        limit = min(limit, 500)
+        offset = max(offset, 0)
+        result = await self.session.execute(query.offset(offset).limit(limit))
+        return list(result.scalars().all())
 
     async def get_all(
         self,
@@ -43,8 +61,8 @@ class ReminderRepository:
             pattern = f"%{search}%"
             query = query.where(
                 or_(
-                    col(Reminder.title).ilike(pattern),
-                    col(Reminder.description).ilike(pattern),
+                    Reminder.title.ilike(pattern),
+                    Reminder.description.ilike(pattern),
                 )
             )
 
@@ -62,9 +80,8 @@ class ReminderRepository:
         offset = max(offset, 0)
         paginated_query = query.offset(offset).limit(limit)
 
-        result = await self.session.exec(paginated_query)
-        reminders = list(result.all())
-        return reminders
+        result = await self.session.execute(paginated_query)
+        return list(result.scalars().all())
 
     async def search_by_title_trgm(
         self,
@@ -77,12 +94,12 @@ class ReminderRepository:
         pattern = f"%{keyword}%"
         statement = (
             select(Reminder)
-            .where(col(Reminder.title).ilike(pattern))
+            .where(Reminder.title.ilike(pattern))
             .offset(max(offset, 0))
             .limit(min(limit, 500))
         )
-        result = await self.session.exec(statement)
-        return list(result.all())
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
 
     async def create(self, data: Mapping[str, Any]) -> Reminder:
         reminder = Reminder(**data)

@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path
-from sqlmodel.ext.asyncio.session import AsyncSession
+from fastapi import APIRouter, Depends, Path, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.exception import NotFoundException
@@ -27,6 +27,24 @@ async def create_profile(
 ):
     new_profile = await service.create_profile(profile_data)
     return new_profile
+
+
+@router.get("/", response_model=list[ProfileResponse])
+async def list_profiles(
+    service: Annotated[ProfileService, Depends(get_profile_service)],
+    search: Annotated[str | None, Query(description="搜索关键词")] = None,
+    order_by: Annotated[str, Query(description="排序字段")] = "id",
+    direction: Annotated[str, Query(description="排序方向 asc/desc")] = "asc",
+    limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
+    offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
+):
+    return await service.list_profiles(
+        search=search,
+        order_by=order_by,
+        direction=direction,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{profile_name}", response_model=ProfileResponse)

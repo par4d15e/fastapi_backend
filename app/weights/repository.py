@@ -1,8 +1,8 @@
 from typing import Any, Mapping
 
+from sqlalchemy import asc, desc, select
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import asc, col, desc, select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.weights.model import WeightRecord
 
@@ -26,7 +26,7 @@ class WeightRecordRepository:
         offset: int = 0,
     ) -> list[WeightRecord]:
         """获取指定宠物的所有体重记录"""
-        query = select(WeightRecord).where(col(WeightRecord.profile_id) == profile_id)
+        query = select(WeightRecord).where(WeightRecord.profile_id == profile_id)
 
         allowed_sort = {"id", "measured_at", "weight_g"}
         if order_by not in allowed_sort:
@@ -38,7 +38,8 @@ class WeightRecordRepository:
 
         limit = min(limit, 500)
         offset = max(offset, 0)
-        return list(await self.session.exec(query.offset(offset).limit(limit)))
+        result = await self.session.execute(query.offset(offset).limit(limit))
+        return list(result.scalars().all())
 
     async def get_all(
         self,
@@ -61,7 +62,8 @@ class WeightRecordRepository:
 
         limit = min(limit, 500)
         offset = max(offset, 0)
-        return list(await self.session.exec(query.offset(offset).limit(limit)))
+        result = await self.session.execute(query.offset(offset).limit(limit))
+        return list(result.scalars().all())
 
     async def create(self, data: Mapping[str, Any]) -> WeightRecord:
         record = WeightRecord(**data)
