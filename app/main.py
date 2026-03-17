@@ -1,22 +1,22 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.auth import router as auth_routers
+from app.auth.backend import fastapi_users
+from app.auth.router import register_fastapi_users_routes
 from app.core.exception import register_exception_handlers
 from app.core.lifespan import lifespan
-from app.foods import router as food_routers
-from app.nutrition import router as nutrition_routers
-from app.profiles import router as profile_routers
-from app.reminders import router as reminder_routers
-from app.users import router as user_routers
-from app.weights import router as weight_routers
+from app.foods.router import router as food_routers
+from app.nutrition.router import router as nutrition_routers
+from app.profiles.router import router as profile_routers
+from app.reminders.router import router as reminder_routers
+from app.weights.router import router as weight_routers
 
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="fastapi_sqlmodel_backend",
+        title="fastapi_sqlalchemy_backend",
         version="0.1.0",
-        description="FastAPI + SQLModel(asynio)",
+        description="FastAPI + SQLAlchemy(asyncio)",
         lifespan=lifespan,  # 绑定生命周期管理器
     )
 
@@ -30,13 +30,12 @@ def create_app() -> FastAPI:
     )
 
     # 路由注册
-    app.include_router(profile_routers.router, prefix="", tags=["profile"])
-    app.include_router(food_routers.router, prefix="", tags=["food"])
-    app.include_router(nutrition_routers.router, prefix="", tags=["nutrition"])
-    app.include_router(reminder_routers.router, prefix="", tags=["reminder"])
-    app.include_router(auth_routers.router, prefix="", tags=["auth"])
-    app.include_router(user_routers.router, prefix="", tags=["users"])
-    app.include_router(weight_routers.router, prefix="", tags=["weights"])
+    app.include_router(profile_routers)
+    app.include_router(food_routers)
+    app.include_router(nutrition_routers)
+    app.include_router(reminder_routers)
+    app.include_router(weight_routers)
+    register_fastapi_users_routes(app, fastapi_users)
 
     # 健康检查
     @app.get("/healthz", tags=["health"])

@@ -1,6 +1,4 @@
-# app/models/__init__.py
 # 导入所有表类以便 metadata 完整
-from app.auth.model import Code, RefreshToken, Social_Account  # noqa: F401
 from app.foods.model import Food  # noqa: F401
 from app.profiles.model import Profile  # noqa: F401
 from app.reminders.model import Reminder  # noqa: F401
