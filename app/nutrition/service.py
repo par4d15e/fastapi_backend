@@ -147,9 +147,9 @@ class NutritionService:
                     ratio=item.ratio,
                     kcals_per_g=kcals_per_g,
                     fixed_grams=item.fixed_grams or 0.0,
-                    protein_g_per_g=item.protein_g_per_g,
-                    fat_g_per_g=item.fat_g_per_g,
-                    carb_g_per_g=item.carb_g_per_g,
+                    protein_g_per_g=None,
+                    fat_g_per_g=None,
+                    carb_g_per_g=None,
                 )
             )
 
