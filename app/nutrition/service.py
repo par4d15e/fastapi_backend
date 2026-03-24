@@ -19,9 +19,6 @@ class _ResolvedFood:
     ratio: float
     kcals_per_g: float
     fixed_grams: float
-    protein_g_per_g: float | None
-    fat_g_per_g: float | None
-    carb_g_per_g: float | None
 
 
 class NutritionService:
@@ -147,9 +144,6 @@ class NutritionService:
                     ratio=item.ratio,
                     kcals_per_g=kcals_per_g,
                     fixed_grams=item.fixed_grams or 0.0,
-                    protein_g_per_g=None,
-                    fat_g_per_g=None,
-                    carb_g_per_g=None,
                 )
             )
 
