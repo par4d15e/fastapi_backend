@@ -18,14 +18,11 @@ class NutritionFoodItem(BaseModel):
 
 
 class NutritionGoal(BaseModel):
-    """目标约束"""
+    """目标约束（仅卡路里）"""
 
     daily_kcals: float | None = Field(
         None, gt=0, description="每日目标热量(kcal)，为空时自动估算"
     )
-    protein_g: float | None = Field(None, ge=0, description="蛋白目标(g)")
-    fat_g: float | None = Field(None, ge=0, description="脂肪目标(g)")
-    carb_g: float | None = Field(None, ge=0, description="碳水目标(g)")
 
 
 class NutritionPlanCreate(BaseModel):
