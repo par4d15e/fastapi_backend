@@ -12,9 +12,6 @@ class NutritionFoodItem(BaseModel):
     kcals_per_g_override: float | None = Field(
         None, gt=0, description="覆盖的卡路里密度(kcal/g)"
     )
-    protein_g_per_g: float | None = Field(None, ge=0, description="蛋白质密度(g/g)")
-    fat_g_per_g: float | None = Field(None, ge=0, description="脂肪密度(g/g)")
-    carb_g_per_g: float | None = Field(None, ge=0, description="碳水密度(g/g)")
 
 
 class NutritionGoal(BaseModel):
