@@ -4,15 +4,14 @@ from datetime import date
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-import sqlalchemy as sa
-from sqlalchemy import ForeignKey, Index, String, desc
+from sqlalchemy import Date, ForeignKey, Index, String, desc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.base_model import Base, DateTimeMixin
 
 if TYPE_CHECKING:
+    from app.auth.model import User
     from app.reminders.model import Reminder
-    from app.users.model import User
     from app.weights.model import WeightRecord
 
 
@@ -35,7 +34,7 @@ class Profile(DateTimeMixin, Base):
     name: Mapped[str] = mapped_column(String(100), unique=True, comment="姓名")
     gender: Mapped[str] = mapped_column(String(20), comment="性别")
     variety: Mapped[str] = mapped_column(String(100), comment="品种")
-    birthday: Mapped[date | None] = mapped_column(sa.Date, comment="生日")
+    birthday: Mapped[date | None] = mapped_column(Date, comment="生日")
     meals_per_day: Mapped[int] = mapped_column(default=2, comment="每日餐数")
     is_neutered: Mapped[bool] = mapped_column(default=False, comment="是否绝育")
     is_obese: Mapped[bool] = mapped_column(default=False, comment="是否肥胖")

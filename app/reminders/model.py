@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import ForeignKey, Index
+from sqlalchemy import DateTime, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.base_model import Base, DateTimeMixin
@@ -40,15 +39,13 @@ class Reminder(DateTimeMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, comment="提醒事项ID")
-    title: Mapped[str] = mapped_column(pg.VARCHAR(100), comment="提醒事项标题")
-    type: Mapped[str] = mapped_column(pg.VARCHAR(50), comment="提醒事项类型")
+    title: Mapped[str] = mapped_column(String(100), comment="提醒事项标题")
+    type: Mapped[str] = mapped_column(String(50), comment="提醒事项类型")
     due_date: Mapped[datetime] = mapped_column(
-        pg.TIMESTAMP(timezone=True), comment="到期时间"
+        DateTime(timezone=True), comment="到期时间"
     )
     is_done: Mapped[bool] = mapped_column(default=False, comment="是否完成")
-    description: Mapped[str | None] = mapped_column(
-        pg.VARCHAR(500), comment="提醒事项描述"
-    )
+    description: Mapped[str | None] = mapped_column(String(500), comment="提醒事项描述")
     profile_id: Mapped[int] = mapped_column(
         ForeignKey("profiles.id"), index=True, comment="宠物ID"
     )

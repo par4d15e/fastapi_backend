@@ -5,9 +5,9 @@ from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, UUIDIDMixin
 from fastapi_users.db import SQLAlchemyUserDatabase
 
+from app.auth.dependencies import get_user_db
+from app.auth.model import User
 from app.core.config import settings
-from app.users.dependencies import get_user_db
-from app.users.model import User
 
 SECRET = settings.jwt_secret
 

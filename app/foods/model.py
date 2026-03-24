@@ -3,14 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-import sqlalchemy as sa
-from sqlalchemy import ForeignKey, Index, String, desc
+from sqlalchemy import Float, ForeignKey, Index, String, desc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.base_model import Base, DateTimeMixin
 
 if TYPE_CHECKING:
-    from app.users.model import User
+    from app.auth.model import User
 
 
 class Food(DateTimeMixin, Base):
@@ -30,11 +29,11 @@ class Food(DateTimeMixin, Base):
     )
     brand: Mapped[str] = mapped_column(String(100), comment="品牌")
     metabolic_energy: Mapped[float | None] = mapped_column(
-        sa.Float, index=True, comment="代谢能(卡路里/千克)"
+        Float, index=True, comment="代谢能(卡路里/千克)"
     )
-    price: Mapped[float | None] = mapped_column(sa.Float, index=True, comment="价格")
+    price: Mapped[float | None] = mapped_column(Float, index=True, comment="价格")
     weight: Mapped[float | None] = mapped_column(
-        sa.Float, index=True, comment="重量(千克)"
+        Float, index=True, comment="重量(千克)"
     )
     description: Mapped[str | None] = mapped_column(String(255), comment="描述")
 

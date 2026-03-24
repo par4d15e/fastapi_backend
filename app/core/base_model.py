@@ -1,8 +1,7 @@
 from datetime import datetime
 
-import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import MetaData, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
+from sqlalchemy import DateTime, MetaData, func
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # 保持原有的命名约定 (用于 Alembic / metadata.create_all)
 database_naming_convention = {
@@ -24,22 +23,18 @@ class Base(DeclarativeBase):
 
 
 class DateTimeMixin:
-    @declared_attr  # type: ignore[misc]
-    def created_at(cls) -> Mapped[datetime]:
-        return mapped_column(
-            pg.TIMESTAMP(timezone=True),
-            server_default=func.now(),
-            nullable=False,
-            index=True,
-            comment="创建时间（数据库自动生成）",
-        )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        index=True,
+        comment="创建时间（数据库自动生成）",
+    )
 
-    @declared_attr  # type: ignore[misc]
-    def updated_at(cls) -> Mapped[datetime]:
-        return mapped_column(
-            pg.TIMESTAMP(timezone=True),
-            server_default=func.now(),
-            onupdate=func.now(),
-            nullable=False,
-            comment="更新时间（数据库自动生成/刷新）",
-        )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+        comment="更新时间（数据库自动生成/刷新）",
+    )

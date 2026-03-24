@@ -13,19 +13,16 @@ from fastapi_users.authentication.strategy.db import (
     DatabaseStrategy,
 )
 
-from app.users.dependencies import get_access_token_db
-from app.users.model import AccessToken
-from app.users.model import User
-from app.users.user_manager import get_user_manager
+from app.auth.dependencies import get_access_token_db
+from app.auth.model import AccessToken, User
+from app.auth.user_manager import get_user_manager
 
-# cookie 传输方式
+# token 传输方式
+bearer_transport = BearerTransport(tokenUrl="auth/token/login")
 cookie_transport = CookieTransport(cookie_max_age=3600)
 
-# bearer 传输方式
-bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
 
-
-# 数据库策略（依赖 users 的 access token db）
+# 数据库策略（依赖 users.dependencies 的 get_access_token_db）
 def get_database_strategy(
     access_token_db: Annotated[
         AccessTokenDatabase[AccessToken], Depends(get_access_token_db)
@@ -33,15 +30,23 @@ def get_database_strategy(
 ) -> DatabaseStrategy:
     return DatabaseStrategy(access_token_db, lifetime_seconds=3600)
 
+
 # # redis策略
 # def get_redis_strategy(auth_redis: Redis = Depends(get_auth_redis)) -> RedisStrategy:
 #     return RedisStrategy(auth_redis, lifetime_seconds=3600)
 
 
-# 数据库认证后端
-database_auth_backend = AuthenticationBackend(
-    name="Database Strategy",
-    transport=cookie_transport,
+# 数据库认证后端（Bearer）
+bearer_database_auth_backend = AuthenticationBackend(
+    name="Database Strategy Bearer",
+    transport=bearer_transport,  # 使用 Bearer 传输方式
+    get_strategy=get_database_strategy,
+)
+
+# 数据库认证后端（Cookie）
+cookie_database_auth_backend = AuthenticationBackend(
+    name="Database Strategy Cookie",
+    transport=cookie_transport,  # 使用 Cookie 传输方式
     get_strategy=get_database_strategy,
 )
 
@@ -52,7 +57,7 @@ database_auth_backend = AuthenticationBackend(
 #     get_strategy=get_redis_strategy,
 # )
 
-
 fastapi_users = FastAPIUsers[User, uuid.UUID](
-    get_user_manager, [database_auth_backend]
+    get_user_manager,
+    [cookie_database_auth_backend, bearer_database_auth_backend],
 )

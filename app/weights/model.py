@@ -3,8 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import ForeignKey, Index, desc
+from sqlalchemy import ForeignKey, Index, desc, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.base_model import Base, DateTimeMixin
@@ -29,7 +28,7 @@ class WeightRecord(DateTimeMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     weight_g: Mapped[int] = mapped_column(comment="体重 (克)")
     measured_at: Mapped[datetime] = mapped_column(
-        pg.TIMESTAMP(timezone=True),
+        DateTime(timezone=True),
         default=lambda: datetime.now(tz=timezone.utc),
         comment="测量时间",
     )

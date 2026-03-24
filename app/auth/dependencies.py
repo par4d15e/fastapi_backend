@@ -5,8 +5,8 @@ from fastapi_users.db import SQLAlchemyUserDatabase
 from fastapi_users_db_sqlalchemy.access_token import SQLAlchemyAccessTokenDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.model import AccessToken, User
 from app.core.database import get_session
-from app.users.model import AccessToken, User
 
 """ --- FastAPI Users 专用依赖 --- """
 
