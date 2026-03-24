@@ -2,8 +2,11 @@
 from fastapi import FastAPI
 from fastapi_users import FastAPIUsers
 
-from app.auth.backend import bearer_database_auth_backend, cookie_database_auth_backend
 from app.auth.schema import UserCreate, UserRead, UserUpdate
+from app.auth.user_manager import (
+    bearer_database_auth_backend,
+    cookie_database_auth_backend,
+)
 
 
 def register_fastapi_users_routes(

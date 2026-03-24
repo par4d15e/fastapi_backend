@@ -1,5 +1,3 @@
-import warnings
-
 from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
