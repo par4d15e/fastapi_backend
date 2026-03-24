@@ -16,10 +16,18 @@ from fastapi_users.authentication.strategy.db import (
 from app.auth.dependencies import get_access_token_db
 from app.auth.model import AccessToken, User
 from app.auth.user_manager import get_user_manager
+from app.core.config import settings
 
 # token 传输方式
 bearer_transport = BearerTransport(tokenUrl="auth/token/login")
-cookie_transport = CookieTransport(cookie_max_age=3600)
+
+# Cookie 安全配置：生产环境要开启 HTTPS、HttpOnly、Strict 同站策略
+cookie_transport = CookieTransport(
+    cookie_max_age=3600,
+    cookie_secure=not settings.debug,
+    cookie_httponly=True,
+    cookie_samesite="strict",
+)
 
 
 # 数据库策略（依赖 users.dependencies 的 get_access_token_db）

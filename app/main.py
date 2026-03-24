@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 
 from app.auth.backend import fastapi_users
 from app.auth.router import register_fastapi_users_routes
@@ -28,6 +29,26 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # 认证审计：记录 /auth 路径的成功/失败的登录/注册事件
+    @app.middleware("http")
+    async def auth_audit_middleware(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/auth"):
+            if response.status_code >= 400:
+                logger.warning(
+                    "Auth request failed",
+                    path=request.url.path,
+                    method=request.method,
+                    status_code=response.status_code,
+                )
+            elif request.url.path.endswith("/login") and response.status_code == 200:
+                logger.info(
+                    "Auth login succeeded",
+                    path=request.url.path,
+                    method=request.method,
+                )
+        return response
 
     # 路由注册
     app.include_router(profile_routers)
