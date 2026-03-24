@@ -81,6 +81,30 @@ class NutritionService:
             notes=notes,
         )
 
+    async def calculate_daily_kcals(
+        self,
+        payload: NutritionPlanCreate,
+    ) -> float:
+        profile = await self.profile_repository.get_by_id(payload.profile_id)
+        if not profile:
+            raise NotFoundException("Profile not found")
+
+        weight_g = await self._resolve_weight_g(payload)
+
+        # 目标热量可由前端直接指定，优先级最高
+        if payload.goal.daily_kcals is not None:
+            return payload.goal.daily_kcals
+
+        activity_factor = self._determine_activity_factor(
+            payload=payload,
+            profile=profile,
+        )
+
+        return self._estimate_daily_kcals(
+            weight_g=weight_g,
+            activity_factor=activity_factor,
+        )
+
     async def _resolve_weight_g(self, payload: NutritionPlanCreate) -> int:
         if payload.weight_g_override is not None:
             return payload.weight_g_override

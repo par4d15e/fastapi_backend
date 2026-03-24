@@ -30,3 +30,16 @@ async def create_nutrition_plan(
 ):
     """根据宠物信息和食品组合计算每日喂食方案"""
     return await service.plan_daily_intake(payload)
+
+
+@router.post("/daily-kcals")
+async def calculate_daily_kcals(
+    payload: NutritionPlanCreate,
+    service: Annotated[NutritionService, Depends(get_nutrition_service)],
+):
+    """只计算并返回每日目标热量（不包含分配方案）。"""
+    kcals = await service.calculate_daily_kcals(payload)
+    return {
+        "profile_id": payload.profile_id,
+        "daily_kcals_target": round(kcals, 2),
+    }

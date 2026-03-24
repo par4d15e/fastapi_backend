@@ -2,8 +2,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from app.auth.backend import fastapi_users
 from app.auth.router import register_fastapi_users_routes
+from app.auth.user_manager import fastapi_users
 from app.core.exception import register_exception_handlers
 from app.core.lifespan import lifespan
 from app.foods.router import router as food_routers
