@@ -28,7 +28,7 @@ class WeightRecordRepository:
         """获取指定宠物的所有体重记录"""
         query = select(WeightRecord).where(WeightRecord.profile_id == profile_id)
 
-        allowed_sort = {"id", "measured_at", "weight_g"}
+        allowed_sort = {"id", "measured_at", "weight_kg"}
         if order_by not in allowed_sort:
             order_by = "measured_at"
         order_column = getattr(WeightRecord, order_by, WeightRecord.measured_at)
@@ -52,7 +52,7 @@ class WeightRecordRepository:
         """获取所有体重记录"""
         query = select(WeightRecord)
 
-        allowed_sort = {"id", "measured_at", "weight_g", "profile_id"}
+        allowed_sort = {"id", "measured_at", "weight_kg", "profile_id"}
         if order_by not in allowed_sort:
             order_by = "measured_at"
         order_column = getattr(WeightRecord, order_by, WeightRecord.measured_at)

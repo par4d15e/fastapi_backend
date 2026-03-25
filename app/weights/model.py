@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Index, desc, DateTime
+from sqlalchemy import DateTime, ForeignKey, Index, desc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.base_model import Base, DateTimeMixin
@@ -26,7 +26,7 @@ class WeightRecord(DateTimeMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    weight_g: Mapped[int] = mapped_column(comment="体重 (克)")
+    weight_kg: Mapped[float] = mapped_column(comment="体重 (kg)")
     measured_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(tz=timezone.utc),
@@ -42,4 +42,4 @@ class WeightRecord(DateTimeMixin, Base):
     )
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
-        return f"<WeightRecord(id={self.id}, profile_id={self.profile_id}, weight_g={self.weight_g})>"
+        return f"<WeightRecord(id={self.id}, profile_id={self.profile_id}, weight_kg={self.weight_kg})>"
