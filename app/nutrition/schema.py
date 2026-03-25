@@ -63,3 +63,9 @@ class NutritionPlanResponse(BaseModel):
     total_kcals: float
     foods: list[NutritionFoodPlan]
     notes: list[str]
+
+
+
+class NutritionDailyKcalsResponse(BaseModel):
+    profile_id: int
+    daily_kcals_target: float
