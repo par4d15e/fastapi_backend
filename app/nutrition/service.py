@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from app.core.exception import NotFoundException
 from app.foods.repository import FoodRepository
 from app.nutrition.schema import (
+    NutritionDailyKcalsResponse,
     NutritionFoodItem,
     NutritionFoodPlan,
     NutritionPlanCreate,
@@ -81,7 +82,7 @@ class NutritionService:
     async def calculate_daily_kcals(
         self,
         payload: NutritionPlanCreate,
-    ) -> float:
+    ) -> NutritionDailyKcalsResponse:
         profile = await self.profile_repository.get_by_id(payload.profile_id)
         if not profile:
             raise NotFoundException("Profile not found")
@@ -90,16 +91,24 @@ class NutritionService:
 
         # 目标热量可由前端直接指定，优先级最高
         if payload.goal.daily_kcals is not None:
-            return payload.goal.daily_kcals
+            return NutritionDailyKcalsResponse(
+                profile_id=payload.profile_id,
+                daily_kcals_target=round(payload.goal.daily_kcals, 2),
+            )
 
         activity_factor = self._determine_activity_factor(
             payload=payload,
             profile=profile,
         )
 
-        return self._estimate_daily_kcals(
+        estimated = self._estimate_daily_kcals(
             weight_g=weight_g,
             activity_factor=activity_factor,
+        )
+
+        return NutritionDailyKcalsResponse(
+            profile_id=payload.profile_id,
+            daily_kcals_target=round(estimated, 2),
         )
 
     async def _resolve_weight_g(self, payload: NutritionPlanCreate) -> int:

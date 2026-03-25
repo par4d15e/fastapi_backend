@@ -5,7 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.foods.repository import FoodRepository
-from app.nutrition.schema import NutritionPlanCreate, NutritionPlanResponse
+from app.nutrition.schema import (
+    NutritionDailyKcalsResponse,
+    NutritionPlanCreate,
+    NutritionPlanResponse,
+)
 from app.nutrition.service import NutritionService
 from app.profiles.repository import ProfileRepository
 from app.weights.repository import WeightRecordRepository
@@ -32,14 +36,10 @@ async def create_nutrition_plan(
     return await service.plan_daily_intake(payload)
 
 
-@router.post("/daily-kcals")
+@router.post("/daily-kcals", response_model=NutritionDailyKcalsResponse)
 async def calculate_daily_kcals(
     payload: NutritionPlanCreate,
     service: Annotated[NutritionService, Depends(get_nutrition_service)],
 ):
     """只计算并返回每日目标热量（不包含分配方案）。"""
-    kcals = await service.calculate_daily_kcals(payload)
-    return {
-        "profile_id": payload.profile_id,
-        "daily_kcals_target": round(kcals, 2),
-    }
+    return await service.calculate_daily_kcals(payload)
