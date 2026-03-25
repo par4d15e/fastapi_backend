@@ -43,7 +43,7 @@ class NutritionService:
         if not profile:
             raise NotFoundException("Profile not found")
 
-        weight_g = await self._resolve_weight_g(payload)
+        weight_kg = await self._resolve_weight_kg(payload)
         resolved_foods = await self._resolve_foods(payload.foods)
 
         # 自动判断或使用覆盖的活动系数
@@ -56,7 +56,7 @@ class NutritionService:
             payload.daily_kcals
             if payload.daily_kcals is not None
             else self._estimate_daily_kcals(
-                weight_g=weight_g,
+                weight_kg=weight_kg,
                 activity_factor=activity_factor,
             )
         )
@@ -71,7 +71,7 @@ class NutritionService:
 
         return NutritionPlanResponse(
             profile_id=payload.profile_id,
-            weight_g=weight_g,
+            weight_kg=weight_kg,
             daily_kcals_target=round(daily_kcals_target, 2),
             total_grams=total_grams,
             total_kcals=total_kcals,
@@ -87,7 +87,7 @@ class NutritionService:
         if not profile:
             raise NotFoundException("Profile not found")
 
-        weight_g = await self._resolve_weight_g(payload)
+        weight_kg = await self._resolve_weight_kg(payload)
 
         # 目标热量可由前端直接指定，优先级最高
         if payload.daily_kcals is not None:
@@ -102,7 +102,7 @@ class NutritionService:
         )
 
         estimated = self._estimate_daily_kcals(
-            weight_g=weight_g,
+            weight_kg=weight_kg,
             activity_factor=activity_factor,
         )
 
@@ -111,9 +111,9 @@ class NutritionService:
             daily_kcals_target=round(estimated, 2),
         )
 
-    async def _resolve_weight_g(self, payload: NutritionPlanCreate) -> int:
-        if payload.weight_g_override is not None:
-            return payload.weight_g_override
+    async def _resolve_weight_kg(self, payload: NutritionPlanCreate) -> float:
+        if payload.weight_kg_override is not None:
+            return payload.weight_kg_override
 
         latest = await self.weight_repository.get_by_profile_id(
             payload.profile_id,
@@ -125,7 +125,7 @@ class NutritionService:
         if not latest:
             raise NotFoundException("Weight record not found for profile")
 
-        return latest[0].weight_g
+        return latest[0].weight_kg
 
     async def _resolve_foods(
         self, foods: list[NutritionFoodItem]
@@ -240,11 +240,10 @@ class NutritionService:
     def _estimate_daily_kcals(
         self,
         *,
-        weight_g: int,
+        weight_kg: float,
         activity_factor: float,
     ) -> float:
         """按约定公式估算每日所需热量: 70 * 体重(kg)^0.75 * 活动系数。"""
-        weight_kg = weight_g / 1000
         return 70 * (weight_kg**0.75) * activity_factor
 
     def _allocate_foods(

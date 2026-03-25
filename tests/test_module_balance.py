@@ -64,7 +64,7 @@ async def test_weight_repository_crud(session_factory):
         created = await repo.create(
             {
                 "profile_id": profile_id,
-                "weight_g": 8500,
+                "weight_kg": 8.5,
                 "measured_at": datetime.now(tz=timezone.utc),
             }
         )
@@ -77,9 +77,9 @@ async def test_weight_repository_crud(session_factory):
         listed = await repo.get_by_profile_id(profile_id)
         assert any(item.id == created.id for item in listed)
 
-        updated = await repo.update(created.id, {"weight_g": 8600})
+        updated = await repo.update(created.id, {"weight_kg": 8.6})
         assert updated is not None
-        assert updated.weight_g == 8600
+        assert updated.weight_kg == 8.6
 
         deleted = await repo.delete(created.id)
         assert deleted is True
@@ -163,7 +163,7 @@ async def test_nutrition_plan_endpoint(client, session_factory):
         await weight_repo.create(
             {
                 "profile_id": profile_id,
-                "weight_g": 9000,
+                "weight_kg": 9.0,
                 "measured_at": datetime.now(tz=timezone.utc),
             }
         )

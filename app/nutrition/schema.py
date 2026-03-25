@@ -22,7 +22,7 @@ class NutritionPlanCreate(BaseModel):
     daily_kcals: float | None = Field(
         None, gt=0, description="每日目标热量(kcal)，为空时自动估算"
     )
-    weight_g_override: int | None = Field(None, gt=0, description="覆盖体重(克)")
+    weight_kg_override: float | None = Field(None, gt=0, description="覆盖体重(千克)")
     age_months_override: int | None = Field(
         None, ge=0, description="覆盖月龄（优先使用）"
     )
@@ -51,7 +51,7 @@ class NutritionFoodPlan(BaseModel):
 
 class NutritionPlanResponse(BaseModel):
     profile_id: int
-    weight_g: int
+    weight_kg: float
     daily_kcals_target: float
     total_grams: float
     total_kcals: float
