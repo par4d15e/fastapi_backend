@@ -14,20 +14,14 @@ class NutritionFoodItem(BaseModel):
     )
 
 
-class NutritionGoal(BaseModel):
-    """目标约束（仅卡路里）"""
-
-    daily_kcals: float | None = Field(
-        None, gt=0, description="每日目标热量(kcal)，为空时自动估算"
-    )
-
-
 class NutritionPlanCreate(BaseModel):
     """营养计划计算请求"""
 
     profile_id: int = Field(..., description="宠物ID")
     foods: list[NutritionFoodItem] = Field(..., min_length=1, description="候选食品")
-    goal: NutritionGoal
+    daily_kcals: float | None = Field(
+        None, gt=0, description="每日目标热量(kcal)，为空时自动估算"
+    )
     weight_g_override: int | None = Field(None, gt=0, description="覆盖体重(克)")
     age_months_override: int | None = Field(
         None, ge=0, description="覆盖月龄（优先使用）"
@@ -63,7 +57,6 @@ class NutritionPlanResponse(BaseModel):
     total_kcals: float
     foods: list[NutritionFoodPlan]
     notes: list[str]
-
 
 
 class NutritionDailyKcalsResponse(BaseModel):

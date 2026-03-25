@@ -53,8 +53,8 @@ class NutritionService:
         )
 
         daily_kcals_target = (
-            payload.goal.daily_kcals
-            if payload.goal.daily_kcals is not None
+            payload.daily_kcals
+            if payload.daily_kcals is not None
             else self._estimate_daily_kcals(
                 weight_g=weight_g,
                 activity_factor=activity_factor,
@@ -90,10 +90,10 @@ class NutritionService:
         weight_g = await self._resolve_weight_g(payload)
 
         # 目标热量可由前端直接指定，优先级最高
-        if payload.goal.daily_kcals is not None:
+        if payload.daily_kcals is not None:
             return NutritionDailyKcalsResponse(
                 profile_id=payload.profile_id,
-                daily_kcals_target=round(payload.goal.daily_kcals, 2),
+                daily_kcals_target=round(payload.daily_kcals, 2),
             )
 
         activity_factor = self._determine_activity_factor(

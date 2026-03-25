@@ -176,9 +176,7 @@ async def test_nutrition_plan_endpoint(client, session_factory):
                 "ratio": 1.0,
             }
         ],
-        "goal": {
-            "daily_kcals": 120.0,
-        },
+        "daily_kcals": 120.0,
     }
     resp = await client.post("/nutrition/plans", json=payload)
     assert resp.status_code == 200
