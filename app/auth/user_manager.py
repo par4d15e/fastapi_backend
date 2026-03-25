@@ -119,3 +119,6 @@ fastapi_users = FastAPIUsers[User, uuid.UUID](
     get_user_manager,
     [cookie_database_auth_backend, bearer_database_auth_backend],
 )
+
+# 依赖项：获取当前用户（必须是活跃用户）
+current_active_user = fastapi_users.current_user(active=True)
