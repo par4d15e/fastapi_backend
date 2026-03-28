@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.model import User
+from app.auth.user_manager import current_active_user
 from app.core.database import get_session
 from app.core.exception import NotFoundException
 from app.foods.repository import FoodRepository
@@ -23,14 +25,16 @@ async def get_food_service(
 @router.post("/", response_model=FoodResponse, status_code=201)
 async def create_food(
     food_data: FoodCreate,
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
-    new_food = await service.create_food(food_data)
+    new_food = await service.create_food(food_data, current_user)
     return new_food
 
 
 @router.get("/", response_model=list[FoodResponse])
 async def list_foods(
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
     search: Annotated[str | None, Query(description="搜索关键词")] = None,
     order_by: Annotated[str, Query(description="排序字段")] = "id",
@@ -39,6 +43,7 @@ async def list_foods(
     offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
     return await service.list_foods(
+        current_user=current_user,
         search=search,
         order_by=order_by,
         direction=direction,
@@ -50,9 +55,10 @@ async def list_foods(
 @router.get("/{food_name}", response_model=FoodResponse)
 async def read_food(
     food_name: Annotated[str, Path(..., description="食物名称")],
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
-    food = await service.get_food_by_name(food_name)
+    food = await service.get_food_by_name(food_name, current_user)
     if not food:
         raise NotFoundException("Food not found")
     return food
@@ -62,15 +68,17 @@ async def read_food(
 async def update_food(
     food_id: Annotated[int, Path(..., description="食物ID")],
     food: FoodUpdate,
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
-    return await service.update_food(food_id, food)
+    return await service.update_food(food_id, food, current_user)
 
 
 @router.delete("/{food_id}", status_code=204)
 async def delete_food(
     food_id: Annotated[int, Path(..., description="食物ID")],
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
-    await service.delete_food(food_id)
+    await service.delete_food(food_id, current_user)
     return None

@@ -39,7 +39,7 @@ class Food(DateTimeMixin, Base):
 
     # 外键及关系（与 User 关联）
     user_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("user.id"), index=True, comment="所属用户ID"
+        ForeignKey("users.id"), index=True, comment="所属用户ID"
     )
     user: Mapped[User | None] = relationship("User", back_populates="foods")
 
