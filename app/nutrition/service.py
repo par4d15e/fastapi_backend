@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.auth.model import User
 from app.core.exception import NotFoundException
 from app.foods.repository import FoodRepository
 from app.nutrition.schema import (
@@ -25,6 +26,9 @@ class _ResolvedFood:
 class NutritionService:
     """Nutrition 服务层：聚合 profile/weight/food 并计算喂食克数"""
 
+    def _is_superuser(self, user: User) -> bool:
+        return bool(getattr(user, "is_superuser", False))
+
     def __init__(
         self,
         food_repository: FoodRepository,
@@ -38,13 +42,19 @@ class NutritionService:
     async def plan_daily_intake(
         self,
         payload: NutritionPlanCreate,
+        current_user: User,
     ) -> NutritionPlanResponse:
-        profile = await self.profile_repository.get_by_id(payload.profile_id)
+        if self._is_superuser(current_user):
+            profile = await self.profile_repository.get_by_id(payload.profile_id)
+        else:
+            profile = await self.profile_repository.get_by_id_and_user(
+                payload.profile_id, current_user.id
+            )
         if not profile:
             raise NotFoundException("Profile not found")
 
-        weight_kg = await self._resolve_weight_kg(payload)
-        resolved_foods = await self._resolve_foods(payload.foods)
+        weight_kg = await self._resolve_weight_kg(payload, current_user)
+        resolved_foods = await self._resolve_foods(payload.foods, current_user)
 
         # 自动判断或使用覆盖的活动系数
         activity_factor = self._determine_activity_factor(
@@ -82,12 +92,18 @@ class NutritionService:
     async def calculate_daily_kcals(
         self,
         payload: NutritionPlanCreate,
+        current_user: User,
     ) -> NutritionDailyKcalsResponse:
-        profile = await self.profile_repository.get_by_id(payload.profile_id)
+        if self._is_superuser(current_user):
+            profile = await self.profile_repository.get_by_id(payload.profile_id)
+        else:
+            profile = await self.profile_repository.get_by_id_and_user(
+                payload.profile_id, current_user.id
+            )
         if not profile:
             raise NotFoundException("Profile not found")
 
-        weight_kg = await self._resolve_weight_kg(payload)
+        weight_kg = await self._resolve_weight_kg(payload, current_user)
 
         # 目标热量可由前端直接指定，优先级最高
         if payload.daily_kcals is not None:
@@ -111,28 +127,46 @@ class NutritionService:
             daily_kcals_target=round(estimated, 2),
         )
 
-    async def _resolve_weight_kg(self, payload: NutritionPlanCreate) -> float:
+    async def _resolve_weight_kg(
+        self, payload: NutritionPlanCreate, current_user: User
+    ) -> float:
         if payload.weight_kg_override is not None:
             return payload.weight_kg_override
 
-        latest = await self.weight_repository.get_by_profile_id(
-            payload.profile_id,
-            order_by="measured_at",
-            direction="desc",
-            limit=1,
-            offset=0,
-        )
+        if self._is_superuser(current_user):
+            latest = await self.weight_repository.get_by_profile_id(
+                payload.profile_id,
+                order_by="measured_at",
+                direction="desc",
+                limit=1,
+                offset=0,
+            )
+        else:
+            latest = await self.weight_repository.get_by_profile_id_and_user(
+                payload.profile_id,
+                current_user.id,
+                order_by="measured_at",
+                direction="desc",
+                limit=1,
+                offset=0,
+            )
+
         if not latest:
             raise NotFoundException("Weight record not found for profile")
 
         return latest[0].weight_kg
 
     async def _resolve_foods(
-        self, foods: list[NutritionFoodItem]
+        self, foods: list[NutritionFoodItem], current_user: User
     ) -> list[_ResolvedFood]:
         resolved: list[_ResolvedFood] = []
         for item in foods:
-            food = await self.food_repository.get_by_id(item.food_id)
+            if self._is_superuser(current_user):
+                food = await self.food_repository.get_by_id(item.food_id)
+            else:
+                food = await self.food_repository.get_by_id_and_user(
+                    item.food_id, current_user.id
+                )
             if not food:
                 raise NotFoundException(f"Food not found: {item.food_id}")
             if food.id is None:

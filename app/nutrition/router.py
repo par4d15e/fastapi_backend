@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.model import User
+from app.auth.user_manager import current_active_user
 from app.core.database import get_session
 from app.foods.repository import FoodRepository
 from app.nutrition.schema import (
@@ -30,16 +32,18 @@ async def get_nutrition_service(
 @router.post("/plans", response_model=NutritionPlanResponse)
 async def create_nutrition_plan(
     payload: NutritionPlanCreate,
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[NutritionService, Depends(get_nutrition_service)],
 ):
     """根据宠物信息和食品组合计算每日喂食方案"""
-    return await service.plan_daily_intake(payload)
+    return await service.plan_daily_intake(payload, current_user)
 
 
 @router.post("/daily-kcals", response_model=NutritionDailyKcalsResponse)
 async def calculate_daily_kcals(
     payload: NutritionPlanCreate,
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[NutritionService, Depends(get_nutrition_service)],
 ):
     """只计算并返回每日目标热量（不包含分配方案）。"""
-    return await service.calculate_daily_kcals(payload)
+    return await service.calculate_daily_kcals(payload, current_user)
