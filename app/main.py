@@ -15,7 +15,7 @@ from app.weights.router import router as weight_routers
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="fastapi_sqlalchemy_backend",
+        title="PAWCARE",
         version="0.1.0",
         description="FastAPI + SQLAlchemy(asyncio)",
         lifespan=lifespan,  # 绑定生命周期管理器

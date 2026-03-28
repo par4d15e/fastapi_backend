@@ -64,6 +64,10 @@ alembic/                 # 数据库迁移脚本
 
 ---
 
+## 环境要求
+
+- Python `>=3.14`（与 `pyproject.toml` 保持一致）
+
 ## 关键环境变量（开发/测试 `.env`，生产请通过 CI/CD secrets）
 
 - `DB_HOST`
@@ -76,6 +80,13 @@ alembic/                 # 数据库迁移脚本
 - `ACCESS_TOKEN_EXPIRE_MINUTES`（默认 `60`）
 - `DEBUG`（生产 `false`）
 
+可选（启用 Redis 相关能力时配置）：
+
+- `REDIS_HOST`
+- `REDIS_PORT`
+- `AUTH_REDIS_DB`
+- `CACHE_REDIS_DB`
+
 > 安全提示：`JWT_SECRET` 不得使用默认值 `example_jwt_secret`，建议长度不低于 32 字符。
 
 ---
@@ -84,37 +95,48 @@ alembic/                 # 数据库迁移脚本
 
 推荐使用 `uv` 作为包和虚拟环境管理工具：
 
+1. 安装 `uv`（如果尚未安装）
+
 ```bash
-# 安装 uv（如果尚未安装）
 python -m pip install -U uv
+```
 
-# 使用 uv 创建环境并安装依赖
-uv install
+2. 同步项目依赖（包含开发依赖）
 
-# 等同于 uv 环境激活 + 应用启动
+```bash
+uv sync --extra dev
+```
+
+3. 准备环境变量文件
+
+```bash
+cp .env.example .env
+```
+
+4. 初始化数据库（仅开发环境）
+
+```bash
+uv run alembic upgrade head
+```
+
+5. 启动服务
+
+```bash
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-如果你仍希望使用传统 venv：
+6. 打开 Swagger
+
+`http://127.0.0.1:8000/docs`
+
+如果你仍希望使用传统 venv，可执行：
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
-python -m pip install -r requirements.txt
+python -m pip install -e ".[dev]"
 ```
-
-2. 准备 `.env`（参考 `.env.example`）
-
-3. 初始化数据库 (仅开发环境)
-
-```bash
-alembic upgrade head
-```
-
-5. 打开浏览器访问 Swagger
-
-`http://127.0.0.1:8000/docs`
 
 ---
 
@@ -146,7 +168,8 @@ pytest -q
 
 ## 开发规范（重点）
 
-- 每个模块保留 `model.py/schema.py/repository.py/service.py/router.py`。
+- 资源型模块（如 `profiles`、`weights`、`foods`、`reminders`）遵循 `model.py/schema.py/repository.py/service.py/router.py` 分层。
+- 特殊模块可按职责裁剪结构（如 `auth`、`nutrition`），但仍需保持“router -> service -> repository（或等价数据访问层）”的职责边界。
 - 数据库 CRUD 仅由 repository 负责，service 处理业务异常。
 - Router 依赖注入 `get_session` + service，接口返回 `response_model`。
 - 使用 `app/core/exception.py` 中异常映射 HTTP 状态码（`NotFoundException`/`AlreadyExistsException` 等）。
