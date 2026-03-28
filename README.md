@@ -1,6 +1,6 @@
 # PAWCARE
 
-PAWCARE 是一个基于 FastAPI、SQLModel、PostgreSQL 的宠物管理后端服务，支持身份认证、档案管理、体重、提醒、食品与营养等功能。项目遵循分层架构，适合云原生部署与快速迭代。
+PAWCARE 是一个基于 FastAPI、SQLAlchemy、PostgreSQL 的宠物管理后端服务，支持身份认证、档案管理、体重、提醒、食品与营养等功能。项目遵循分层架构，适合云原生部署与快速迭代。
 
 ---
 
