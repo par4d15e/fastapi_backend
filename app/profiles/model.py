@@ -43,13 +43,13 @@ class Profile(DateTimeMixin, Base):
     )
     description: Mapped[str | None] = mapped_column(String(255), comment="描述")
 
-    # 关联用户
+    # 外键
     user_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("user.id"), index=True, comment="所属用户ID"
+        ForeignKey("users.id"), index=True, comment="所属用户ID"
     )
-    user: Mapped[User | None] = relationship("User", back_populates="profiles")
 
     # 关系
+    user: Mapped[User | None] = relationship("User", back_populates="profiles")
     reminders: Mapped[list[Reminder]] = relationship(
         "Reminder", back_populates="profile"
     )

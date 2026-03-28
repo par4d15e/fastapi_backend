@@ -42,7 +42,7 @@ async def list_profiles(
     offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
     return await service.list_profiles(
-        current_user.id,
+        current_user,
         search=search,
         order_by=order_by,
         direction=direction,
@@ -57,7 +57,7 @@ async def get_profile(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[ProfileService, Depends(get_profile_service)],
 ):
-    profile = await service.get_profile_by_name(profile_name, current_user.id)
+    profile = await service.get_profile_by_name(profile_name, current_user)
     return profile
 
 
@@ -68,7 +68,7 @@ async def update_profile(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[ProfileService, Depends(get_profile_service)],
 ):
-    return await service.update_profile(profile_id, profile, current_user.id)
+    return await service.update_profile(profile_id, profile, current_user)
 
 
 @router.delete("/{profile_id}", status_code=204)
@@ -77,5 +77,5 @@ async def delete_profile(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[ProfileService, Depends(get_profile_service)],
 ):
-    await service.delete_profile(profile_id, current_user.id)
+    await service.delete_profile(profile_id, current_user)
     return None
