@@ -1,13 +1,17 @@
 from dataclasses import dataclass
 
+from app.auth.model import User
 from app.core.exception import NotFoundException
 from app.foods.repository import FoodRepository
+from app.nutrition.repository import NutritionPreferenceRepository
 from app.nutrition.schema import (
-    NutritionAchieved,
+    NutritionDailyKcalsResponse,
     NutritionFoodItem,
     NutritionFoodPlan,
     NutritionPlanCreate,
     NutritionPlanResponse,
+    NutritionPreferenceResponse,
+    NutritionPreferenceUpsert,
 )
 from app.profiles.repository import ProfileRepository
 from app.weights.repository import WeightRecordRepository
@@ -20,9 +24,6 @@ class _ResolvedFood:
     ratio: float
     kcals_per_g: float
     fixed_grams: float
-    protein_g_per_g: float | None
-    fat_g_per_g: float | None
-    carb_g_per_g: float | None
 
 
 class NutritionService:
@@ -34,32 +35,43 @@ class NutritionService:
         profile_repository: ProfileRepository,
         weight_repository: WeightRecordRepository,
     ) -> None:
+        """初始化NutritionService。"""
         self.food_repository = food_repository
         self.profile_repository = profile_repository
         self.weight_repository = weight_repository
 
+    def _is_superuser(self, user: User) -> bool:
+        """判断当前用户是否为超级管理员。"""
+        return bool(getattr(user, "is_superuser", False))
+
     async def plan_daily_intake(
         self,
         payload: NutritionPlanCreate,
+        current_user: User,
     ) -> NutritionPlanResponse:
-        profile = await self.profile_repository.get_by_id(payload.profile_id)
+        """生成每日营养方案。"""
+        if self._is_superuser(current_user):
+            profile = await self.profile_repository.get_by_id(payload.profile_id)
+        else:
+            profile = await self.profile_repository.get_by_id_and_user_or_family(
+                payload.profile_id, current_user.id
+            )
         if not profile:
             raise NotFoundException("Profile not found")
 
-        weight_g = await self._resolve_weight_g(payload)
-        resolved_foods = await self._resolve_foods(payload.foods)
+        weight_kg = await self._resolve_weight_kg(payload, current_user)
+        resolved_foods = await self._resolve_foods(payload.foods, current_user)
 
-        # 自动判断或使用覆盖的活动系数
         activity_factor = self._determine_activity_factor(
             payload=payload,
             profile=profile,
         )
 
         daily_kcals_target = (
-            payload.goal.daily_kcals
-            if payload.goal.daily_kcals is not None
+            payload.daily_kcals
+            if payload.daily_kcals is not None
             else self._estimate_daily_kcals(
-                weight_g=weight_g,
+                weight_kg=weight_kg,
                 activity_factor=activity_factor,
             )
         )
@@ -71,51 +83,97 @@ class NutritionService:
 
         total_grams = round(sum(item.grams for item in plans), 2)
         total_kcals = round(sum(item.kcals for item in plans), 2)
-        achieved = self._calc_achieved_nutrients(plans, resolved_foods)
-
-        if payload.goal.protein_g is not None and achieved.protein_g is not None:
-            if achieved.protein_g < payload.goal.protein_g:
-                notes.append("protein target not fully reached")
-        if payload.goal.fat_g is not None and achieved.fat_g is not None:
-            if achieved.fat_g < payload.goal.fat_g:
-                notes.append("fat target not fully reached")
-        if payload.goal.carb_g is not None and achieved.carb_g is not None:
-            if achieved.carb_g < payload.goal.carb_g:
-                notes.append("carb target not fully reached")
 
         return NutritionPlanResponse(
             profile_id=payload.profile_id,
-            weight_g=weight_g,
+            weight_kg=weight_kg,
             daily_kcals_target=round(daily_kcals_target, 2),
             total_grams=total_grams,
             total_kcals=total_kcals,
             foods=plans,
-            achieved=achieved,
             notes=notes,
         )
 
-    async def _resolve_weight_g(self, payload: NutritionPlanCreate) -> int:
-        if payload.weight_g_override is not None:
-            return payload.weight_g_override
+    async def calculate_daily_kcals(
+        self,
+        payload: NutritionPlanCreate,
+        current_user: User,
+    ) -> NutritionDailyKcalsResponse:
+        """计算每日目标千卡。"""
+        if self._is_superuser(current_user):
+            profile = await self.profile_repository.get_by_id(payload.profile_id)
+        else:
+            profile = await self.profile_repository.get_by_id_and_user_or_family(
+                payload.profile_id, current_user.id
+            )
+        if not profile:
+            raise NotFoundException("Profile not found")
 
-        latest = await self.weight_repository.get_by_profile_id(
-            payload.profile_id,
-            order_by="measured_at",
-            direction="desc",
-            limit=1,
-            offset=0,
+        weight_kg = await self._resolve_weight_kg(payload, current_user)
+
+        if payload.daily_kcals is not None:
+            return NutritionDailyKcalsResponse(
+                profile_id=payload.profile_id,
+                daily_kcals_target=round(payload.daily_kcals, 2),
+            )
+
+        activity_factor = self._determine_activity_factor(
+            payload=payload,
+            profile=profile,
         )
+
+        estimated = self._estimate_daily_kcals(
+            weight_kg=weight_kg,
+            activity_factor=activity_factor,
+        )
+
+        return NutritionDailyKcalsResponse(
+            profile_id=payload.profile_id,
+            daily_kcals_target=round(estimated, 2),
+        )
+
+    async def _resolve_weight_kg(
+        self, payload: NutritionPlanCreate, current_user: User
+    ) -> float:
+        """解析档案的体重数据。"""
+        if payload.weight_kg_override is not None:
+            return payload.weight_kg_override
+
+        if self._is_superuser(current_user):
+            latest = await self.weight_repository.get_by_profile_id(
+                payload.profile_id,
+                order_by="measured_at",
+                direction="desc",
+                limit=1,
+                offset=0,
+            )
+        else:
+            latest = await self.weight_repository.get_by_profile_id_and_user_or_family(
+                payload.profile_id,
+                current_user.id,
+                order_by="measured_at",
+                direction="desc",
+                limit=1,
+                offset=0,
+            )
+
         if not latest:
             raise NotFoundException("Weight record not found for profile")
 
-        return latest[0].weight_g
+        return latest[0].weight_kg
 
     async def _resolve_foods(
-        self, foods: list[NutritionFoodItem]
+        self, foods: list[NutritionFoodItem], current_user: User
     ) -> list[_ResolvedFood]:
+        """获取用于营养分配的食物列表。"""
         resolved: list[_ResolvedFood] = []
         for item in foods:
-            food = await self.food_repository.get_by_id(item.food_id)
+            if self._is_superuser(current_user):
+                food = await self.food_repository.get_by_id(item.food_id)
+            else:
+                food = await self.food_repository.get_by_id_and_user_or_family(
+                    item.food_id, current_user.id
+                )
             if not food:
                 raise NotFoundException(f"Food not found: {item.food_id}")
             if food.id is None:
@@ -136,9 +194,6 @@ class NutritionService:
                     ratio=item.ratio,
                     kcals_per_g=kcals_per_g,
                     fixed_grams=item.fixed_grams or 0.0,
-                    protein_g_per_g=item.protein_g_per_g,
-                    fat_g_per_g=item.fat_g_per_g,
-                    carb_g_per_g=item.carb_g_per_g,
                 )
             )
 
@@ -150,20 +205,16 @@ class NutritionService:
         payload: NutritionPlanCreate,
         profile,
     ) -> float:
-        """根据宠物状态自动判断生活系数（活动系数）"""
-        # 优先使用手动覆盖值
+        """计算活动系数。"""
         if payload.activity_factor_override is not None:
             return payload.activity_factor_override
 
-        # 哺乳期母犬: 3.0-8.0，取中值 5.5
         if payload.is_lactating:
             return 5.5
 
-        # 妊娠母犬: 2.0-3.0，取中值 2.5
         if payload.is_pregnant:
             return 2.5
 
-        # 肥胖犬: 1.0 （优先使用请求覆盖，其次使用 profile 字段）
         is_obese = (
             payload.is_obese_override
             if payload.is_obese_override is not None
@@ -172,7 +223,6 @@ class NutritionService:
         if is_obese:
             return 1.0
 
-        # 计算实际月龄 （优先使用请求覆盖，其次从生日计算）
         age_months = payload.age_months_override
         if age_months is None and profile.birthday is not None:
             from datetime import date
@@ -182,33 +232,28 @@ class NutritionService:
                 today.month - profile.birthday.month
             )
 
-        # 幼犬判断
         if age_months is not None:
             if age_months < 4:
-                return 3.0  # 幼犬（小于4个月）
+                return 3.0
             if age_months < 12:
-                return 2.0  # 幼犬（4个月以上）
+                return 2.0
 
-        # 老年犬: 1.2
         is_senior = (
             payload.is_senior_override
             if payload.is_senior_override is not None
-            else False  # Profile 暂时没有 is_senior 字段
+            else False
         )
         if is_senior:
             return 1.2
 
-        # 成年犬根据绝育状态和活动水平
         neutered = (
             payload.neutered_override
             if payload.neutered_override is not None
             else profile.is_neutered
         )
         if neutered:
-            # 成年绝育犬: 1.2-1.4，取中值 1.3
             return 1.3
 
-        # 未绝育成年犬，根据活动水平
         activity_level = (
             payload.activity_level_override
             if payload.activity_level_override is not None
@@ -216,21 +261,19 @@ class NutritionService:
         )
         activity_level = (activity_level or "medium").lower()
         if activity_level == "low":
-            return 1.4  # 未绝育成年犬（低活动量）
+            return 1.4
         if activity_level == "high":
-            return 2.0  # 未绝育成年犬（高活动量）或小型犬/高能量犬
+            return 2.0
 
-        # 默认：未绝育成年犬（中等活动量）: 1.4-1.6，取中值 1.5
         return 1.5
 
     def _estimate_daily_kcals(
         self,
         *,
-        weight_g: int,
+        weight_kg: float,
         activity_factor: float,
     ) -> float:
-        """按约定公式估算每日所需热量: 70 * 体重(kg)^0.75 * 活动系数。"""
-        weight_kg = weight_g / 1000
+        """估算每日目标热量。"""
         return 70 * (weight_kg**0.75) * activity_factor
 
     def _allocate_foods(
@@ -239,6 +282,7 @@ class NutritionService:
         target_kcals: float,
         foods: list[_ResolvedFood],
     ) -> tuple[list[NutritionFoodPlan], list[str]]:
+        """按目标热量分配食物。"""
         notes: list[str] = []
         fixed_kcals = sum(item.fixed_grams * item.kcals_per_g for item in foods)
         remaining_kcals = max(target_kcals - fixed_kcals, 0)
@@ -269,34 +313,78 @@ class NutritionService:
 
         return plans, notes
 
-    def _calc_achieved_nutrients(
+
+class NutritionPreferenceService:
+    def __init__(
         self,
-        plans: list[NutritionFoodPlan],
-        foods: list[_ResolvedFood],
-    ) -> NutritionAchieved:
-        food_map = {food.food_id: food for food in foods}
-        protein_total = 0.0
-        fat_total = 0.0
-        carb_total = 0.0
+        preference_repository: NutritionPreferenceRepository,
+        profile_repository: ProfileRepository,
+    ) -> None:
+        """初始化NutritionPreferenceService。"""
+        self.preference_repository = preference_repository
+        self.profile_repository = profile_repository
 
-        has_protein = False
-        has_fat = False
-        has_carb = False
+    def _is_superuser(self, user: User) -> bool:
+        """判断当前用户是否为超级管理员。"""
+        return bool(getattr(user, "is_superuser", False))
 
-        for plan in plans:
-            item = food_map[plan.food_id]
-            if item.protein_g_per_g is not None:
-                has_protein = True
-                protein_total += plan.grams * item.protein_g_per_g
-            if item.fat_g_per_g is not None:
-                has_fat = True
-                fat_total += plan.grams * item.fat_g_per_g
-            if item.carb_g_per_g is not None:
-                has_carb = True
-                carb_total += plan.grams * item.carb_g_per_g
+    async def get_preference(
+        self, profile_id: int, current_user: User
+    ) -> NutritionPreferenceResponse:
+        """获取档案营养偏好。"""
+        if self._is_superuser(current_user):
+            profile = await self.profile_repository.get_by_id(profile_id)
+        else:
+            profile = await self.profile_repository.get_by_id_and_user_or_family(
+                profile_id, current_user.id
+            )
+        if not profile:
+            raise NotFoundException("Profile not found")
 
-        return NutritionAchieved(
-            protein_g=round(protein_total, 2) if has_protein else None,
-            fat_g=round(fat_total, 2) if has_fat else None,
-            carb_g=round(carb_total, 2) if has_carb else None,
+        preference = await self.preference_repository.get_by_profile_id(profile_id)
+        if not preference:
+            return NutritionPreferenceResponse(
+                profile_id=profile_id,
+                selected_foods=[],
+                daily_kcals_target=None,
+            )
+
+        return NutritionPreferenceResponse(
+            profile_id=profile_id,
+            selected_foods=[
+                NutritionFoodItem.model_validate(food)
+                for food in preference.selected_foods
+            ],
+            daily_kcals_target=preference.daily_kcals_target,
+        )
+
+    async def upsert_preference(
+        self,
+        payload: NutritionPreferenceUpsert,
+        current_user: User,
+    ) -> NutritionPreferenceResponse:
+        """创建或更新档案营养偏好。"""
+        if self._is_superuser(current_user):
+            profile = await self.profile_repository.get_by_id(payload.profile_id)
+        else:
+            profile = await self.profile_repository.get_by_id_and_user_or_family(
+                payload.profile_id, current_user.id
+            )
+        if not profile:
+            raise NotFoundException("Profile not found")
+
+        preference = await self.preference_repository.upsert_by_profile_id(
+            payload.profile_id,
+            {
+                "selected_foods": [item.model_dump() for item in payload.selected_foods],
+                "daily_kcals_target": payload.daily_kcals_target,
+            },
+        )
+        return NutritionPreferenceResponse(
+            profile_id=preference.profile_id,
+            selected_foods=[
+                NutritionFoodItem.model_validate(food)
+                for food in preference.selected_foods
+            ],
+            daily_kcals_target=preference.daily_kcals_target,
         )

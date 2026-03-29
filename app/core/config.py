@@ -1,6 +1,4 @@
-import warnings
-
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -47,6 +45,7 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def database_url(self) -> str:
+        """生成 PostgreSQL 异步数据库连接串。"""
         return (
             f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
@@ -56,6 +55,7 @@ class Settings(BaseSettings):
     @property
     def engine_options(self) -> dict:
         # 统一封装 engine options, 供 create_async_engine 使用
+        """生成 SQLAlchemy 异步引擎参数。"""
         return {
             "pool_size": self.pool_size,
             "max_overflow": self.max_overflow,
@@ -68,36 +68,35 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def auth_redis_url(self) -> str:
+        """生成认证 Redis 连接串。"""
         return f"redis://{self.redis_host}:{self.redis_port}/{self.auth_redis_db}"
 
     @computed_field
     @property
     def cache_redis_url(self) -> str:
+        """生成缓存 Redis 连接串。"""
         return f"redis://{self.redis_host}:{self.redis_port}/{self.cache_redis_db}"
+
+    @model_validator(mode="after")
+    def validate_sensitive_settings(self):
+        """校验关键配置是否已正确设置。"""
+        if not self.jwt_secret or self.jwt_secret == "example_jwt_secret":
+            raise ValueError(
+                "jwt_secret 不可为空且不能为默认占位符，生产环境请通过 .env 或系统环境变量设置真实值。"
+            )
+
+        if not self.debug:
+            missing_db = [
+                name
+                for name in ("db_user", "db_password", "db_host", "db_name")
+                if not getattr(self, name)
+            ]
+            if missing_db:
+                raise ValueError(
+                    f"生产环境缺少数据库配置：{', '.join(missing_db)}，请在 .env 或环境变量中注入真实值。"
+                )
+
+        return self
 
 
 settings = Settings()
-
-# 运行时校验（非强制）：在非调试（生产）环境下，提示关键敏感配置未设置
-# 采用警告而非抛错，避免在开发环境中因未设置 .env 导致无法运行。
-
-if not settings.debug:
-    # 检查 PostgreSQL 必需配置
-    missing = [
-        name
-        for name in ("db_user", "db_password", "db_host", "db_name")
-        if not getattr(settings, name)
-    ]
-    if missing:
-        warnings.warn(
-            f"Missing DB settings in production (.env or env vars): {', '.join(missing)}",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-    # JWT 密钥最好存在
-    if not settings.jwt_secret:
-        warnings.warn(
-            'Missing "jwt_secret" in production. Please set it via .env or environment variables.',
-            RuntimeWarning,
-            stacklevel=2,
-        )

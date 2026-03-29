@@ -1,7 +1,7 @@
-from sqlmodel import Field, SQLModel
+from pydantic import BaseModel, Field
 
 
-class NutritionFoodItem(SQLModel):
+class NutritionFoodItem(BaseModel):
     """单个候选食品"""
 
     food_id: int = Field(..., description="食品ID")
@@ -12,29 +12,17 @@ class NutritionFoodItem(SQLModel):
     kcals_per_g_override: float | None = Field(
         None, gt=0, description="覆盖的卡路里密度(kcal/g)"
     )
-    protein_g_per_g: float | None = Field(None, ge=0, description="蛋白质密度(g/g)")
-    fat_g_per_g: float | None = Field(None, ge=0, description="脂肪密度(g/g)")
-    carb_g_per_g: float | None = Field(None, ge=0, description="碳水密度(g/g)")
 
 
-class NutritionGoal(SQLModel):
-    """目标约束"""
-
-    daily_kcals: float | None = Field(
-        None, gt=0, description="每日目标热量(kcal)，为空时自动估算"
-    )
-    protein_g: float | None = Field(None, ge=0, description="蛋白目标(g)")
-    fat_g: float | None = Field(None, ge=0, description="脂肪目标(g)")
-    carb_g: float | None = Field(None, ge=0, description="碳水目标(g)")
-
-
-class NutritionPlanCreate(SQLModel):
+class NutritionPlanCreate(BaseModel):
     """营养计划计算请求"""
 
     profile_id: int = Field(..., description="宠物ID")
     foods: list[NutritionFoodItem] = Field(..., min_length=1, description="候选食品")
-    goal: NutritionGoal
-    weight_g_override: int | None = Field(None, gt=0, description="覆盖体重(克)")
+    daily_kcals: float | None = Field(
+        None, gt=0, description="每日目标热量(kcal)，为空时自动估算"
+    )
+    weight_kg_override: float | None = Field(None, gt=0, description="覆盖体重(千克)")
     age_months_override: int | None = Field(
         None, ge=0, description="覆盖月龄（优先使用）"
     )
@@ -53,7 +41,7 @@ class NutritionPlanCreate(SQLModel):
     )
 
 
-class NutritionFoodPlan(SQLModel):
+class NutritionFoodPlan(BaseModel):
     food_id: int
     food_name: str
     kcals_per_g: float
@@ -61,18 +49,38 @@ class NutritionFoodPlan(SQLModel):
     kcals: float
 
 
-class NutritionAchieved(SQLModel):
-    protein_g: float | None = Field(None, ge=0)
-    fat_g: float | None = Field(None, ge=0)
-    carb_g: float | None = Field(None, ge=0)
-
-
-class NutritionPlanResponse(SQLModel):
+class NutritionPlanResponse(BaseModel):
     profile_id: int
-    weight_g: int
+    weight_kg: float
     daily_kcals_target: float
     total_grams: float
     total_kcals: float
     foods: list[NutritionFoodPlan]
-    achieved: NutritionAchieved
     notes: list[str]
+
+
+class NutritionDailyKcalsResponse(BaseModel):
+    profile_id: int
+    daily_kcals_target: float
+
+
+class NutritionPreferenceUpsert(BaseModel):
+    profile_id: int = Field(..., description="宠物ID")
+    selected_foods: list[NutritionFoodItem] = Field(
+        default_factory=list, description="最近一次选择的食品列表"
+    )
+    daily_kcals_target: float | None = Field(
+        None, gt=0, description="最近一次目标热量"
+    )
+
+
+class NutritionPreferenceResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    profile_id: int = Field(..., description="宠物ID")
+    selected_foods: list[NutritionFoodItem] = Field(
+        default_factory=list, description="最近一次选择的食品列表"
+    )
+    daily_kcals_target: float | None = Field(
+        None, description="最近一次目标热量"
+    )

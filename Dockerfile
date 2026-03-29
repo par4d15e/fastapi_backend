@@ -21,6 +21,15 @@ COPY alembic ./alembic
 # 开放 uvicorn 使用的端口（可选）
 EXPOSE 8000
 
+# 生产环境建议从外部环境注入敏感配置
+ENV DB_HOST=example_host
+ENV DB_PORT=5432
+ENV DB_USER=example_user
+ENV DB_PASSWORD=example_password
+ENV DB_NAME=example_db
+ENV JWT_SECRET=example_jwt_secret
+ENV DEBUG=false
+
 # 默认启动命令，运行 API 服务
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 

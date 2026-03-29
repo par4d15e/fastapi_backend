@@ -1,22 +1,26 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 
-from app.auth import router as auth_routers
+from app.core import models  # noqa: F401  # 保证所有 ORM 模型都已加载
+from app.auth.router import register_fastapi_users_routes
+from app.auth.user_manager import fastapi_users
 from app.core.exception import register_exception_handlers
 from app.core.lifespan import lifespan
-from app.foods import router as food_routers
-from app.nutrition import router as nutrition_routers
-from app.profiles import router as profile_routers
-from app.reminders import router as reminder_routers
-from app.users import router as user_routers
-from app.weights import router as weight_routers
+from app.foods.router import router as food_routers
+from app.families.router import router as family_routers
+from app.nutrition.router import router as nutrition_routers
+from app.profiles.router import router as profile_routers
+from app.reminders.router import router as reminder_routers
+from app.weights.router import router as weight_routers
 
 
 def create_app() -> FastAPI:
+    """创建并配置 FastAPI 应用实例。"""
     app = FastAPI(
-        title="fastapi_sqlmodel_backend",
+        title="PAWCARE",
         version="0.1.0",
-        description="FastAPI + SQLModel(asynio)",
+        description="FastAPI + SQLAlchemy(asyncio)",
         lifespan=lifespan,  # 绑定生命周期管理器
     )
 
@@ -29,18 +33,40 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # 认证审计：记录 /auth 路径的成功/失败的登录/注册事件
+    @app.middleware("http")
+    async def auth_audit_middleware(request: Request, call_next):
+        """记录认证请求的审计日志。"""
+        response = await call_next(request)
+        if request.url.path.startswith("/auth"):
+            if response.status_code >= 400:
+                logger.warning(
+                    "Auth request failed",
+                    path=request.url.path,
+                    method=request.method,
+                    status_code=response.status_code,
+                )
+            elif request.url.path.endswith("/login") and response.status_code == 200:
+                logger.info(
+                    "Auth login succeeded",
+                    path=request.url.path,
+                    method=request.method,
+                )
+        return response
+
     # 路由注册
-    app.include_router(profile_routers.router, prefix="", tags=["profile"])
-    app.include_router(food_routers.router, prefix="", tags=["food"])
-    app.include_router(nutrition_routers.router, prefix="", tags=["nutrition"])
-    app.include_router(reminder_routers.router, prefix="", tags=["reminder"])
-    app.include_router(auth_routers.router, prefix="", tags=["auth"])
-    app.include_router(user_routers.router, prefix="", tags=["users"])
-    app.include_router(weight_routers.router, prefix="", tags=["weights"])
+    app.include_router(profile_routers)
+    app.include_router(food_routers)
+    app.include_router(family_routers)
+    app.include_router(nutrition_routers)
+    app.include_router(reminder_routers)
+    app.include_router(weight_routers)
+    register_fastapi_users_routes(app, fastapi_users)
 
     # 健康检查
     @app.get("/healthz", tags=["health"])
     async def healthz():
+        """返回服务健康状态。"""
         return {"status": "ok"}
 
     # 注册全局异常处理

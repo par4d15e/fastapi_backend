@@ -1,10 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path
-from sqlmodel.ext.asyncio.session import AsyncSession
+from fastapi import APIRouter, Depends, Path, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.model import User
+from app.auth.user_manager import current_active_user
 from app.core.database import get_session
 from app.core.exception import NotFoundException
+from app.families.repository import FamilyRepository
 from app.foods.repository import FoodRepository
 from app.foods.schema import FoodCreate, FoodResponse, FoodUpdate
 from app.foods.service import FoodService
@@ -16,25 +19,52 @@ router = APIRouter(prefix="/foods", tags=["foods"])
 async def get_food_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> FoodService:
+    """获取食物服务依赖。"""
     repository = FoodRepository(session)
-    return FoodService(repository)
+    family_repository = FamilyRepository(session)
+    return FoodService(repository, family_repository)
 
 
 @router.post("/", response_model=FoodResponse, status_code=201)
 async def create_food(
-    food_data: Annotated[FoodCreate, Depends()],
+    food_data: FoodCreate,
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
-    new_food = await service.create_food(food_data)
+    """创建食物。"""
+    new_food = await service.create_food(food_data, current_user)
     return new_food
+
+
+@router.get("/", response_model=list[FoodResponse])
+async def list_foods(
+    current_user: Annotated[User, Depends(current_active_user)],
+    service: Annotated[FoodService, Depends(get_food_service)],
+    search: Annotated[str | None, Query(description="搜索关键词")] = None,
+    order_by: Annotated[str, Query(description="排序字段")] = "id",
+    direction: Annotated[str, Query(description="排序方向 asc/desc")] = "asc",
+    limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
+    offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
+):
+    """列出食物列表。"""
+    return await service.list_foods(
+        current_user=current_user,
+        search=search,
+        order_by=order_by,
+        direction=direction,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{food_name}", response_model=FoodResponse)
 async def read_food(
     food_name: Annotated[str, Path(..., description="食物名称")],
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
-    food = await service.get_food_by_name(food_name)
+    """获取指定食物。"""
+    food = await service.get_food_by_name(food_name, current_user)
     if not food:
         raise NotFoundException("Food not found")
     return food
@@ -44,15 +74,19 @@ async def read_food(
 async def update_food(
     food_id: Annotated[int, Path(..., description="食物ID")],
     food: FoodUpdate,
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
-    return await service.update_food(food_id, food)
+    """更新指定食物。"""
+    return await service.update_food(food_id, food, current_user)
 
 
 @router.delete("/{food_id}", status_code=204)
 async def delete_food(
     food_id: Annotated[int, Path(..., description="食物ID")],
+    current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
-    await service.delete_food(food_id)
+    """删除指定食物。"""
+    await service.delete_food(food_id, current_user)
     return None

@@ -1,33 +1,31 @@
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.core.base_model import Base
 from app.core.config import settings
 
 
 class Database:
     def __init__(self, url: str, **engine_options) -> None:
+        """初始化数据库管理器。"""
         self.engine = create_async_engine(url, **engine_options)
         self.session_factory = async_sessionmaker(
             self.engine, class_=AsyncSession, autoflush=False, expire_on_commit=False
         )
 
     async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
+        """创建并返回一个异步数据库会话。"""
         async with self.session_factory() as session:
             yield session
 
     async def create_tables(self) -> None:
+        """创建所有数据库表。"""
         async with self.engine.begin() as conn:
-            await conn.run_sync(SQLModel.metadata.create_all)
+            await conn.run_sync(Base.metadata.create_all)
 
     async def dispose(self) -> None:
-        """关闭并清理底层 engine (封装 engine.dispose)
-
-        这是面向对象的 API, 推荐在应用关闭处调用 `await db.dispose()` 而不是直接访问
-        `engine`。保留 engine 导出用于兼容测试/现有代码。
-        """
+        """释放数据库连接资源。"""
         await self.engine.dispose()
 
 

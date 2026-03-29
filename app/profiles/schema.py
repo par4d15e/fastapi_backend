@@ -1,9 +1,9 @@
 from datetime import date
 
-from sqlmodel import Field, SQLModel
+from pydantic import BaseModel, Field
 
 
-class ProfileCreate(SQLModel):
+class ProfileCreate(BaseModel):
     """创建宠物档案"""
 
     name: str = Field(..., max_length=100, description="姓名")
@@ -16,9 +16,10 @@ class ProfileCreate(SQLModel):
         "medium", max_length=20, description="活动水平: low/medium/high"
     )
     is_obese: bool = Field(False, description="是否肥胖")
+    family_id: int | None = Field(None, description="所属家庭ID")
 
 
-class ProfileUpdate(SQLModel):
+class ProfileUpdate(BaseModel):
     """更新宠物档案（部分可选）"""
 
     name: str | None = Field(None, max_length=100, description="姓名")
@@ -31,10 +32,13 @@ class ProfileUpdate(SQLModel):
         None, max_length=20, description="活动水平: low/medium/high"
     )
     is_obese: bool | None = Field(None, description="是否肥胖")
+    family_id: int | None = Field(None, description="所属家庭ID")
 
 
-class ProfileResponse(SQLModel):
+class ProfileResponse(BaseModel):
     """宠物档案响应"""
+
+    model_config = {"from_attributes": True}
 
     id: int
     name: str = Field(..., max_length=100, description="姓名")
@@ -47,3 +51,4 @@ class ProfileResponse(SQLModel):
         "medium", max_length=20, description="活动水平: low/medium/high"
     )
     is_obese: bool = Field(False, description="是否肥胖")
+    family_id: int | None = Field(None, description="所属家庭ID")

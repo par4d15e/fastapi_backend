@@ -23,7 +23,7 @@ async def test_profile_repository_crud(session_factory):
         assert created.id is not None
 
         # get by name
-        got = await repo.get_by_name("charlie")
+        got = await repo._get_by_name("charlie")
         assert got and got.id == created.id
 
         # list all
@@ -56,5 +56,5 @@ async def test_profile_repository_crud(session_factory):
         # verify deletion with a fresh session (avoid identity-map caching)
         async with session_factory() as s:
             repo2 = ProfileRepository(s)
-            got_after = await repo2.get_by_id(created.id)
+            got_after = await repo2._get_by_id(created.id)
             assert got_after is None
