@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def database_url(self) -> str:
+        """生成 PostgreSQL 异步数据库连接串。"""
         return (
             f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
@@ -54,6 +55,7 @@ class Settings(BaseSettings):
     @property
     def engine_options(self) -> dict:
         # 统一封装 engine options, 供 create_async_engine 使用
+        """生成 SQLAlchemy 异步引擎参数。"""
         return {
             "pool_size": self.pool_size,
             "max_overflow": self.max_overflow,
@@ -66,15 +68,18 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def auth_redis_url(self) -> str:
+        """生成认证 Redis 连接串。"""
         return f"redis://{self.redis_host}:{self.redis_port}/{self.auth_redis_db}"
 
     @computed_field
     @property
     def cache_redis_url(self) -> str:
+        """生成缓存 Redis 连接串。"""
         return f"redis://{self.redis_host}:{self.redis_port}/{self.cache_redis_db}"
 
     @model_validator(mode="after")
     def validate_sensitive_settings(self):
+        """校验关键配置是否已正确设置。"""
         if not self.jwt_secret or self.jwt_secret == "example_jwt_secret":
             raise ValueError(
                 "jwt_secret 不可为空且不能为默认占位符，生产环境请通过 .env 或系统环境变量设置真实值。"

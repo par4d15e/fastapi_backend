@@ -13,7 +13,7 @@ def register_fastapi_users_routes(
     app: FastAPI,
     fastapi_users: FastAPIUsers,
 ) -> None:
-    """把 FastAPI-Users 的所有 router 挂到 app 上, 以便应用主入口调用一次即可注册所有认证相关的路由"""
+    """注册 FastAPI Users 相关路由。"""
 
     # 生成 Bearer 登录路由
     app.include_router(

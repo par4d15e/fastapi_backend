@@ -29,11 +29,13 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     verification_token_secret = SECRET
 
     async def on_after_register(self, user: User, request: Request | None = None):
+        """在用户注册后记录日志。"""
         logger.info("User registered", user_id=user.id, email=user.email)
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Request | None = None
     ):
+        """在用户发起找回密码后记录日志。"""
         logger.info(
             "Password reset requested",
             user_id=user.id,
@@ -44,6 +46,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     async def on_after_request_verify(
         self, user: User, token: str, request: Request | None = None
     ):
+        """在用户请求验证邮件后记录日志。"""
         logger.info(
             "Verification email requested",
             user_id=user.id,
@@ -57,6 +60,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         request: Request | None = None,
         response=None,
     ):
+        """在用户登录成功后记录日志。"""
         logger.info("User login success", user_id=user.id, email=user.email)
 
     async def on_after_login_failed(
@@ -64,6 +68,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         request: Request | None = None,
         reason: str | None = None,
     ):
+        """在用户登录失败后记录日志。"""
         logger.warning(
             "User login failed",
             details=reason or "unknown reason",
@@ -74,6 +79,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 async def get_user_manager(
     user_db: Annotated[SQLAlchemyUserDatabase, Depends(get_user_db)],
 ):
+    """获取用户管理器依赖。"""
     yield UserManager(user_db)
 
 
@@ -97,6 +103,7 @@ def get_database_strategy(
         AccessTokenDatabase[AccessToken], Depends(get_access_token_db)
     ],
 ) -> DatabaseStrategy:
+    """获取认证数据库策略。"""
     return DatabaseStrategy(access_token_db, lifetime_seconds=3600)
 
 

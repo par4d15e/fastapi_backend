@@ -13,9 +13,11 @@ from app.core.database import get_session
 
 # 获取用户数据库依赖
 async def get_user_db(session: Annotated[AsyncSession, Depends(get_session)]):
+    """为 FastAPI Users 提供用户数据库适配器。"""
     yield SQLAlchemyUserDatabase(session, User)
 
 
 # 获取访问令牌数据库依赖
 async def get_access_token_db(session: Annotated[AsyncSession, Depends(get_session)]):
+    """为 FastAPI Users 提供访问令牌数据库适配器。"""
     yield SQLAlchemyAccessTokenDatabase(session, AccessToken)
