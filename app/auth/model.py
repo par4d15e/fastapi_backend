@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base_model import Base, DateTimeMixin
 
 if TYPE_CHECKING:
-    pass
+    from app.families.model import Family, FamilyMember
 
 
 class User(SQLAlchemyBaseUserTableUUID, Base, DateTimeMixin):
@@ -20,6 +20,12 @@ class User(SQLAlchemyBaseUserTableUUID, Base, DateTimeMixin):
     # 关系：一个用户可拥有多条食品和多个档案
     foods = relationship("Food", back_populates="user")
     profiles = relationship("Profile", back_populates="user")
+    owned_families: Mapped[list[Family]] = relationship(
+        "Family", back_populates="owner"
+    )
+    family_memberships: Mapped[list[FamilyMember]] = relationship(
+        "FamilyMember", back_populates="user"
+    )
 
 
 class AccessToken(SQLAlchemyBaseAccessTokenTableUUID, Base):

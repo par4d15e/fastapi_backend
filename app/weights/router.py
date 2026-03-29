@@ -20,6 +20,7 @@ router = APIRouter(prefix="/weights", tags=["weights"])
 async def get_weight_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> WeightRecordService:
+    """获取体重记录服务依赖。"""
     return WeightRecordService(WeightRecordRepository(session))
 
 
@@ -29,7 +30,7 @@ async def create_weight_record(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[WeightRecordService, Depends(get_weight_service)],
 ):
-    """创建体重记录"""
+    """创建体重记录。"""
     return await service.create_record(record_data, current_user)
 
 
@@ -42,7 +43,7 @@ async def list_weight_records(
     limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
     offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
-    """获取所有体重记录"""
+    """列出体重记录列表。"""
     return await service.list_records(
         current_user,
         order_by=order_by,
@@ -62,7 +63,7 @@ async def list_weight_records_by_profile(
     limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
     offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
-    """获取指定宠物的体重记录列表"""
+    """列出体重记录列表。"""
     return await service.list_records_by_profile(
         profile_id,
         current_user,
@@ -79,7 +80,7 @@ async def get_weight_record(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[WeightRecordService, Depends(get_weight_service)],
 ):
-    """根据ID获取体重记录"""
+    """获取指定体重记录。"""
     return await service.get_record_by_id(record_id, current_user)
 
 
@@ -90,7 +91,7 @@ async def update_weight_record(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[WeightRecordService, Depends(get_weight_service)],
 ):
-    """更新体重记录"""
+    """更新指定体重记录。"""
     return await service.update_record(record_id, record_data, current_user)
 
 
@@ -100,6 +101,6 @@ async def delete_weight_record(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[WeightRecordService, Depends(get_weight_service)],
 ):
-    """删除体重记录"""
+    """删除指定体重记录。"""
     await service.delete_record(record_id, current_user)
     return None

@@ -16,6 +16,7 @@ class ProfileCreate(BaseModel):
         "medium", max_length=20, description="活动水平: low/medium/high"
     )
     is_obese: bool = Field(False, description="是否肥胖")
+    family_id: int | None = Field(None, description="所属家庭ID")
 
 
 class ProfileUpdate(BaseModel):
@@ -31,6 +32,7 @@ class ProfileUpdate(BaseModel):
         None, max_length=20, description="活动水平: low/medium/high"
     )
     is_obese: bool | None = Field(None, description="是否肥胖")
+    family_id: int | None = Field(None, description="所属家庭ID")
 
 
 class ProfileResponse(BaseModel):
@@ -49,3 +51,4 @@ class ProfileResponse(BaseModel):
         "medium", max_length=20, description="活动水平: low/medium/high"
     )
     is_obese: bool = Field(False, description="是否肥胖")
+    family_id: int | None = Field(None, description="所属家庭ID")

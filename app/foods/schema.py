@@ -10,6 +10,7 @@ class FoodCreate(BaseModel):
     price: float | None = Field(None, ge=0, description="价格")
     weight: float | None = Field(None, ge=0, description="重量(千克)")
     description: str | None = Field(None, max_length=255, description="描述")
+    family_id: int | None = Field(None, description="所属家庭ID")
 
 
 class FoodUpdate(BaseModel):
@@ -21,6 +22,7 @@ class FoodUpdate(BaseModel):
     price: float | None = Field(None, ge=0, description="价格")
     weight: float | None = Field(None, ge=0, description="重量(千克)")
     description: str | None = Field(None, max_length=255, description="描述")
+    family_id: int | None = Field(None, description="所属家庭ID")
 
 
 class FoodResponse(BaseModel):
@@ -35,3 +37,4 @@ class FoodResponse(BaseModel):
     price: float | None = Field(None, ge=0, description="价格")
     weight: float | None = Field(None, ge=0, description="重量(千克)")
     description: str | None = Field(None, max_length=255, description="描述")
+    family_id: int | None = Field(None, description="所属家庭ID")

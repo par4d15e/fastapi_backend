@@ -42,4 +42,5 @@ class WeightRecord(DateTimeMixin, Base):
     )
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
+        """返回体重记录对象的调试字符串。"""
         return f"<WeightRecord(id={self.id}, profile_id={self.profile_id}, weight_kg={self.weight_kg})>"

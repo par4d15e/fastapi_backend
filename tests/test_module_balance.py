@@ -4,9 +4,11 @@ from uuid import uuid4
 from sqlalchemy import update
 
 from app.auth.model import User
+from app.families.model import Family, FamilyMember
 from app.foods.repository import FoodRepository
 from app.profiles.repository import ProfileRepository
 from app.profiles.schema import ProfileCreate
+from app.nutrition.schema import NutritionFoodItem, NutritionPreferenceUpsert
 from app.reminders.repository import ReminderRepository
 from app.weights.repository import WeightRecordRepository
 
@@ -348,3 +350,162 @@ async def test_nutrition_plan_endpoint(client, session_factory):
     assert data["daily_kcals_target"] == 120.0
     assert len(data["foods"]) == 1
     assert data["total_kcals"] > 0
+
+
+async def test_nutrition_plan_uses_latest_weight(client, session_factory):
+    user_id = await _create_user(client)
+    profile_id = await _create_profile_id(session_factory, user_id=user_id)
+
+    async with session_factory() as session:
+        food_repo = FoodRepository(session)
+        weight_repo = WeightRecordRepository(session)
+
+        food = await food_repo.create(
+            {
+                "name": f"nutri-food-{uuid4().hex[:8]}",
+                "brand": "brand-n",
+                "metabolic_energy": 4.0,
+                "price": 10.0,
+                "weight": 1.0,
+                "description": "for nutrition plan",
+                "user_id": user_id,
+            }
+        )
+        assert food.id is not None
+
+        await weight_repo.create(
+            {
+                "profile_id": profile_id,
+                "weight_kg": 8.5,
+                "measured_at": datetime.now(tz=timezone.utc) - timedelta(days=1),
+            }
+        )
+        await weight_repo.create(
+            {
+                "profile_id": profile_id,
+                "weight_kg": 11.25,
+                "measured_at": datetime.now(tz=timezone.utc),
+            }
+        )
+
+    payload = {
+        "profile_id": profile_id,
+        "foods": [
+            {
+                "food_id": food.id,
+                "ratio": 1.0,
+            }
+        ],
+    }
+    resp = await client.post("/nutrition/plans", json=payload)
+    assert resp.status_code == 200
+
+    data = resp.json()
+    assert data["profile_id"] == profile_id
+    assert data["weight_kg"] == 11.25
+    assert data["daily_kcals_target"] > 0
+    assert len(data["foods"]) == 1
+
+
+async def test_family_member_can_access_shared_profile_food_and_preferences(
+    client, session_factory
+):
+    owner_id = await _create_user(client)
+    family_id = None
+
+    async with session_factory() as session:
+        family = Family(
+            name=f"family-{uuid4().hex[:8]}",
+            owner_id=owner_id,
+            description="shared home",
+        )
+        session.add(family)
+        await session.commit()
+        await session.refresh(family)
+        family_id = family.id
+
+        session.add(
+            FamilyMember(
+                family_id=family.id,
+                user_id=owner_id,
+                role="owner",
+            )
+        )
+        await session.commit()
+
+        profile_repo = ProfileRepository(session)
+        profile = await profile_repo.create(
+            {
+                "name": f"shared-pet-{uuid4().hex[:8]}",
+                "gender": "female",
+                "variety": "mix",
+                "birthday": None,
+                "meals_per_day": 2,
+                "is_neutered": False,
+                "activity_level": "medium",
+                "is_obese": False,
+                "user_id": owner_id,
+                "family_id": family.id,
+            }
+        )
+        assert profile.id is not None
+
+        food_repo = FoodRepository(session)
+        food = await food_repo.create(
+            {
+                "name": f"shared-food-{uuid4().hex[:8]}",
+                "brand": "brand-share",
+                "metabolic_energy": 4.2,
+                "price": 18.0,
+                "weight": 1.0,
+                "description": "shared food",
+                "user_id": owner_id,
+                "family_id": family.id,
+            }
+        )
+        assert food.id is not None
+
+    family_member_id = await _create_user(client)
+    async with session_factory() as session:
+        session.add(
+            FamilyMember(
+                family_id=family_id,
+                user_id=family_member_id,
+                role="member",
+            )
+        )
+        await session.commit()
+
+    profile_resp = await client.get(f"/profiles/{profile.name}")
+    assert profile_resp.status_code == 200
+    assert profile_resp.json()["family_id"] == family_id
+
+    food_resp = await client.get(f"/foods/{food.name}")
+    assert food_resp.status_code == 200
+    assert food_resp.json()["family_id"] == family_id
+
+    pref_resp = await client.get(f"/nutrition/preferences/{profile.id}")
+    assert pref_resp.status_code == 200
+    assert pref_resp.json()["selected_foods"] == []
+
+    save_resp = await client.put(
+        f"/nutrition/preferences/{profile.id}",
+        json={
+            "profile_id": profile.id,
+            "selected_foods": [
+                {"food_id": food.id, "ratio": 2.0, "fixed_grams": 30.0}
+            ],
+            "daily_kcals_target": 180.0,
+        },
+    )
+    assert save_resp.status_code == 200
+    save_data = save_resp.json()
+    assert save_data["profile_id"] == profile.id
+    assert save_data["daily_kcals_target"] == 180.0
+    assert save_data["selected_foods"][0]["food_id"] == food.id
+
+    reload_resp = await client.get(f"/nutrition/preferences/{profile.id}")
+    assert reload_resp.status_code == 200
+    reload_data = reload_resp.json()
+    assert reload_data["selected_foods"][0]["ratio"] == 2.0
+    assert reload_data["selected_foods"][0]["fixed_grams"] == 30.0

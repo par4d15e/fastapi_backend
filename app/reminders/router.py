@@ -17,6 +17,7 @@ router = APIRouter(prefix="/reminders", tags=["reminders"])
 async def get_reminder_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> ReminderService:
+    """获取提醒服务依赖。"""
     repository = ReminderRepository(session)
     return ReminderService(repository)
 
@@ -27,6 +28,7 @@ async def create_reminder(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[ReminderService, Depends(get_reminder_service)],
 ):
+    """创建提醒。"""
     new_reminder = await service.create_reminder(reminder_data, current_user)
     return new_reminder
 
@@ -41,6 +43,7 @@ async def list_reminders(
     limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
     offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
+    """列出提醒列表。"""
     return await service.list_reminders(
         current_user,
         search=search,
@@ -61,6 +64,7 @@ async def list_reminders_by_profile(
     limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
     offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
+    """列出提醒列表。"""
     return await service.list_reminders_by_profile(
         profile_id,
         current_user,
@@ -79,6 +83,7 @@ async def search_reminders_by_title(
     limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
     offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
+    """搜索提醒。"""
     return await service.search_reminders_by_title(
         keyword, current_user, limit=limit, offset=offset
     )
@@ -90,6 +95,7 @@ async def get_reminder(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[ReminderService, Depends(get_reminder_service)],
 ):
+    """获取指定提醒。"""
     return await service.get_reminder_by_id(reminder_id, current_user)
 
 
@@ -100,6 +106,7 @@ async def update_reminder(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[ReminderService, Depends(get_reminder_service)],
 ):
+    """更新指定提醒。"""
     return await service.update_reminder(reminder_id, reminder, current_user)
 
 
@@ -109,5 +116,6 @@ async def delete_reminder(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[ReminderService, Depends(get_reminder_service)],
 ):
+    """删除指定提醒。"""
     await service.delete_reminder(reminder_id, current_user)
     return None

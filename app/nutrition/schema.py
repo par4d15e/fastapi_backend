@@ -62,3 +62,25 @@ class NutritionPlanResponse(BaseModel):
 class NutritionDailyKcalsResponse(BaseModel):
     profile_id: int
     daily_kcals_target: float
+
+
+class NutritionPreferenceUpsert(BaseModel):
+    profile_id: int = Field(..., description="宠物ID")
+    selected_foods: list[NutritionFoodItem] = Field(
+        default_factory=list, description="最近一次选择的食品列表"
+    )
+    daily_kcals_target: float | None = Field(
+        None, gt=0, description="最近一次目标热量"
+    )
+
+
+class NutritionPreferenceResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    profile_id: int = Field(..., description="宠物ID")
+    selected_foods: list[NutritionFoodItem] = Field(
+        default_factory=list, description="最近一次选择的食品列表"
+    )
+    daily_kcals_target: float | None = Field(
+        None, description="最近一次目标热量"
+    )

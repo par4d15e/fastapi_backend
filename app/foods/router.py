@@ -7,6 +7,7 @@ from app.auth.model import User
 from app.auth.user_manager import current_active_user
 from app.core.database import get_session
 from app.core.exception import NotFoundException
+from app.families.repository import FamilyRepository
 from app.foods.repository import FoodRepository
 from app.foods.schema import FoodCreate, FoodResponse, FoodUpdate
 from app.foods.service import FoodService
@@ -18,8 +19,10 @@ router = APIRouter(prefix="/foods", tags=["foods"])
 async def get_food_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> FoodService:
+    """获取食物服务依赖。"""
     repository = FoodRepository(session)
-    return FoodService(repository)
+    family_repository = FamilyRepository(session)
+    return FoodService(repository, family_repository)
 
 
 @router.post("/", response_model=FoodResponse, status_code=201)
@@ -28,6 +31,7 @@ async def create_food(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
+    """创建食物。"""
     new_food = await service.create_food(food_data, current_user)
     return new_food
 
@@ -42,6 +46,7 @@ async def list_foods(
     limit: Annotated[int, Query(ge=1, le=500, description="每页数量")] = 10,
     offset: Annotated[int, Query(ge=0, description="偏移量")] = 0,
 ):
+    """列出食物列表。"""
     return await service.list_foods(
         current_user=current_user,
         search=search,
@@ -58,6 +63,7 @@ async def read_food(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
+    """获取指定食物。"""
     food = await service.get_food_by_name(food_name, current_user)
     if not food:
         raise NotFoundException("Food not found")
@@ -71,6 +77,7 @@ async def update_food(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
+    """更新指定食物。"""
     return await service.update_food(food_id, food, current_user)
 
 
@@ -80,5 +87,6 @@ async def delete_food(
     current_user: Annotated[User, Depends(current_active_user)],
     service: Annotated[FoodService, Depends(get_food_service)],
 ):
+    """删除指定食物。"""
     await service.delete_food(food_id, current_user)
     return None

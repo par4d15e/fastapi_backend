@@ -55,4 +55,5 @@ class Reminder(DateTimeMixin, Base):
     )
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
+        """返回提醒对象的调试字符串。"""
         return f"<Reminder(id={self.id}, title={self.title})>"

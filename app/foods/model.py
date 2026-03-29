@@ -10,6 +10,7 @@ from app.core.base_model import Base, DateTimeMixin
 
 if TYPE_CHECKING:
     from app.auth.model import User
+    from app.families.model import Family
 
 
 class Food(DateTimeMixin, Base):
@@ -41,7 +42,12 @@ class Food(DateTimeMixin, Base):
     user_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id"), index=True, comment="所属用户ID"
     )
+    family_id: Mapped[int | None] = mapped_column(
+        ForeignKey("families.id"), index=True, comment="所属家庭ID"
+    )
     user: Mapped[User | None] = relationship("User", back_populates="foods")
+    family: Mapped[Family | None] = relationship("Family", back_populates="foods")
 
     def __repr__(self) -> str:  # pragma: no cover - simple representation
+        """返回食物对象的调试字符串。"""
         return f"<Food(id={self.id}, name={self.name})>"

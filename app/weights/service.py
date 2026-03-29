@@ -16,9 +16,11 @@ class WeightRecordService:
     """WeightRecord 服务层：封装业务逻辑并调用 repository"""
 
     def __init__(self, repository: WeightRecordRepository) -> None:
+        """初始化WeightRecordService。"""
         self.repository = repository
 
     def _is_superuser(self, user: User) -> bool:
+        """判断当前用户是否为超级管理员。"""
         return bool(getattr(user, "is_superuser", False))
 
     async def get_record_by_id(
@@ -26,10 +28,11 @@ class WeightRecordService:
         record_id: int,
         current_user: User,
     ) -> WeightRecordResponse:
+        """根据 ID 获取体重记录。"""
         if self._is_superuser(current_user):
             record = await self.repository.get_by_id(record_id)
         else:
-            record = await self.repository.get_by_id_and_user(
+            record = await self.repository.get_by_id_and_user_or_family(
                 record_id, current_user.id
             )
         if not record:
@@ -46,7 +49,7 @@ class WeightRecordService:
         limit: int = 10,
         offset: int = 0,
     ) -> list[WeightRecordResponse]:
-        """查询指定宠物的体重记录列表"""
+        """列出指定档案的体重记录。"""
         if self._is_superuser(current_user):
             records = await self.repository.get_by_profile_id(
                 profile_id,
@@ -56,7 +59,7 @@ class WeightRecordService:
                 offset=offset,
             )
         else:
-            records = await self.repository.get_by_profile_id_and_user(
+            records = await self.repository.get_by_profile_id_and_user_or_family(
                 profile_id,
                 current_user.id,
                 order_by=order_by,
@@ -75,7 +78,7 @@ class WeightRecordService:
         limit: int = 10,
         offset: int = 0,
     ) -> list[WeightRecordResponse]:
-        """查询所有体重记录"""
+        """列出当前用户可见的体重记录。"""
         if self._is_superuser(current_user):
             records = await self.repository.get_all(
                 order_by=order_by,
@@ -84,7 +87,7 @@ class WeightRecordService:
                 offset=offset,
             )
         else:
-            records = await self.repository.get_all_by_user(
+            records = await self.repository.get_all_by_user_or_family(
                 current_user.id,
                 order_by=order_by,
                 direction=direction,
@@ -98,17 +101,16 @@ class WeightRecordService:
         record_data: WeightRecordCreate,
         current_user: User,
     ) -> WeightRecordResponse:
+        """创建体重记录。"""
         data = record_data.model_dump()
         if data.get("measured_at") is None:
             data["measured_at"] = datetime.now(tz=timezone.utc)
 
         if not self._is_superuser(current_user):
-            owner = await self.repository.get_by_profile_id_and_user(
-                data["profile_id"],
-                current_user.id,
-                limit=1,
+            accessible = await self.repository.is_profile_accessible_by_user(
+                data["profile_id"], current_user.id
             )
-            if not owner:
+            if not accessible:
                 raise NotFoundException("Profile not found")
 
         try:
@@ -123,10 +125,11 @@ class WeightRecordService:
         record_data: WeightRecordUpdate,
         current_user: User,
     ) -> WeightRecordResponse:
+        """更新体重记录。"""
         if self._is_superuser(current_user):
             existing = await self.repository.get_by_id(record_id)
         else:
-            existing = await self.repository.get_by_id_and_user(
+            existing = await self.repository.get_by_id_and_user_or_family(
                 record_id, current_user.id
             )
         if not existing:
@@ -139,10 +142,11 @@ class WeightRecordService:
         return WeightRecordResponse.model_validate(updated)
 
     async def delete_record(self, record_id: int, current_user: User) -> bool:
+        """删除体重记录。"""
         if self._is_superuser(current_user):
             existing = await self.repository.get_by_id(record_id)
         else:
-            existing = await self.repository.get_by_id_and_user(
+            existing = await self.repository.get_by_id_and_user_or_family(
                 record_id, current_user.id
             )
         if not existing:
