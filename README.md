@@ -1,6 +1,8 @@
 # PAWCARE
 
-PAWCARE 是一个基于 FastAPI、SQLAlchemy、PostgreSQL 的宠物管理后端服务，支持身份认证、档案管理、体重、提醒、食品与营养等功能。项目遵循分层架构，适合云原生部署与快速迭代。
+PAWCARE 是一个基于 FastAPI、SQLAlchemy、PostgreSQL 的宠物管理后端服务，支持身份认证、家庭共享、宠物档案、体重记录、提醒、食品管理与营养分析等功能。项目遵循分层架构，适合云原生部署与快速迭代。
+
+当前版本新增了家庭模块与家庭邀请流程，并让宠物档案、食品、体重记录和提醒支持“个人 + 家庭”共享访问；同时补充了营养偏好接口，便于保存最近一次的配餐选择。
 
 ---
 
@@ -23,6 +25,13 @@ app/
 │  ├── router.py
 │  ├── dependencies.py
 │  └── user_manager.py
+├─ families/             # 家庭共享、成员与邀请
+│  ├── __init__.py
+│  ├── model.py
+│  ├── schema.py
+│  ├── repository.py
+│  ├── service.py
+│  └── router.py
 ├─ profiles/             # 宠物档案
 │  ├── __init__.py
 │  ├── model.py
@@ -53,6 +62,8 @@ app/
 │  └── router.py
 ├─ nutrition/            # 营养分析
 │  ├── __init__.py
+│  ├── model.py
+│  ├── repository.py
 │  ├── router.py
 │  ├── schema.py
 │  └── service.py
@@ -88,6 +99,49 @@ alembic/                 # 数据库迁移脚本
 - `CACHE_REDIS_DB`
 
 > 安全提示：`JWT_SECRET` 不得使用默认值 `example_jwt_secret`，建议长度不低于 32 字符。
+
+---
+
+## 功能概览
+
+- `auth`：用户注册、登录、找回密码与认证令牌管理
+- `families`：家庭创建、成员管理、邀请生成与邀请接受
+- `profiles`：宠物档案管理，支持归属个人或家庭
+- `foods`：食品管理，支持归属个人或家庭
+- `weights`：体重记录管理，支持归属个人或家庭
+- `reminders`：提醒管理，支持归属个人或家庭
+- `nutrition`：营养方案计算、每日目标热量计算、营养偏好保存
+
+---
+
+## 核心 API
+
+所有业务路由均挂载在 `app.main:app` 上，主要前缀如下：
+
+- `/auth`：认证相关接口
+- `/families`：家庭、成员、邀请接口
+- `/profiles`：宠物档案接口
+- `/foods`：食品接口
+- `/weights`：体重记录接口
+- `/reminders`：提醒接口
+- `/nutrition`：营养分析与营养偏好接口
+
+其中营养模块提供以下接口：
+
+- `POST /nutrition/plans`：根据宠物、体重和候选食品生成每日喂食方案
+- `POST /nutrition/daily-kcals`：只计算每日目标热量
+- `GET /nutrition/preferences/{profile_id}`：获取宠物的营养偏好
+- `PUT /nutrition/preferences/{profile_id}`：保存或更新宠物的营养偏好
+
+家庭模块提供以下接口：
+
+- `POST /families`：创建家庭
+- `POST /families/{family_id}/members`：添加家庭成员
+- `DELETE /families/{family_id}/members/{user_id}`：移除家庭成员
+- `POST /families/{family_id}/invites`：创建家庭邀请
+- `POST /families/invites/accept`：接受家庭邀请
+
+宠物档案、食品、体重记录和提醒接口都支持家庭成员共享访问：家庭成员可以读取家庭范围内的数据，家庭拥有者可以继续管理这些资源。
 
 ---
 
@@ -169,10 +223,11 @@ pytest -q
 ## 开发规范（重点）
 
 - 资源型模块（如 `profiles`、`weights`、`foods`、`reminders`）遵循 `model.py/schema.py/repository.py/service.py/router.py` 分层。
-- 特殊模块可按职责裁剪结构（如 `auth`、`nutrition`），但仍需保持“router -> service -> repository（或等价数据访问层）”的职责边界。
+- 特殊模块可按职责裁剪结构（如 `auth`、`nutrition`、`families`），但仍需保持“router -> service -> repository（或等价数据访问层）”的职责边界。
 - 数据库 CRUD 仅由 repository 负责，service 处理业务异常。
 - Router 依赖注入 `get_session` + service，接口返回 `response_model`。
 - 使用 `app/core/exception.py` 中异常映射 HTTP 状态码（`NotFoundException`/`AlreadyExistsException` 等）。
+- 共享资源需要同时考虑个人归属和家庭归属，相关 repository/service 应保持权限判断一致。
 
 ---
 
@@ -187,4 +242,3 @@ pytest -q
 ## 贡献
 
 欢迎提交 issue/PR，分支命名建议 `feature/xxx`/`fix/xxx`，提交信息遵循项目规范（如 `✨ 新增 ...`、`🐛 修复 ...`）。
-
