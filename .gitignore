@@ -62,3 +62,4 @@ Thumbs.db
 # Others
 .cache/
 __pypackages__/
+.codex
